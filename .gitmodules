@@ -1,0 +1,3 @@
+[submodule "xplat"]
+	path = xplat
+	url = git://github.com/vshymanskyy/xplat.git
