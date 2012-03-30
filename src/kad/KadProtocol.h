@@ -32,7 +32,7 @@ private:
 	KadNodeId mMyId;
 
 public:
-	KadMsgCommon(uint8_t type, uint32_t cookie, const KadNodeId& id)
+	KadMsgCommon(KadMsgType type, uint32_t cookie, const KadNodeId& id)
 		: mVersion	(htons(0xCAD1))
 		, mMsgType	(type)
 		, mCookie	(htonl(cookie))
@@ -43,6 +43,8 @@ public:
 
 	uint16_t Version() const { return ntohs(mVersion); }
 	uint32_t Cookie() const { return ntohl(mCookie); }
+	KadMsgType Type() const { return KadMsgType(mMsgType); }
+
 } GCC_SPECIFIC(__attribute__((packed)));
 
 

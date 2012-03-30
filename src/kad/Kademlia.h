@@ -155,25 +155,8 @@ public:
 
 };
 
-class Kademlia: public XThread
+class Kademlia
 {
-
-private:
-	virtual int Run()
-	{
-		KadAddr from;
-
-		mSocket.GetBindAddr(&from);
-
-		LOG(mLog, "Bound to address " << from)
-
-		uint8_t buffer[KADEMLIA_MAX_MSG_SIZE];
-		while (!IsStopping()) {
-			ssize_t len = mSocket.RecvFrom(&buffer, sizeof(buffer), &from);
-			LOG(mLog, "Got message from " << from << " (" << len << "bytes");
-		}
-		return 0;
-	}
 
 public:
 	Kademlia(const KadNodeId& id = KadNodeId::Random(), uint16_t port = 0)
@@ -181,7 +164,7 @@ public:
 			, mRoutingTable(new Node(0, KadNodeId::Zero()))
 			, mLog("Kad")
 	{
-		mSocket.Bind(port);
+
 	}
 
 	virtual ~Kademlia() {
@@ -259,7 +242,6 @@ public:
 private:
 	KadNodeId mLocalId;
 	Node* mRoutingTable;
-	KadSocket mSocket;
 	XLog mLog;
 };
 

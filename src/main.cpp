@@ -44,9 +44,9 @@ int Simulate(int argc, char *argv[])
 		nodes[i]->DumpTable();
 	}
 
-	for (int i = 0; i < NODES_QTY; i++) {
-		nodes[i]->Start();
-	}
+	//for (int i = 0; i < NODES_QTY; i++) {
+	//	nodes[i]->Start();
+	//}
 
 	getchar();
 

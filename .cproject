@@ -40,18 +40,19 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/runner-include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.bfd_1.7.0/runner-include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyy/.eclipse/org.eclipse.platform_3.7.0_1473617060/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/runner-include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyy/.eclipse/org.eclipse.platform_3.7.0_1473617060/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/xplat}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/include&quot;"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.other.other.812955972" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0" valueType="string"/>
+								<option id="gnu.cpp.compiler.option.other.other.812955972" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -finstrument-functions" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1603810239" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.cross.c.linker.1101996277" name="Cross GCC Linker" superClass="cdt.managedbuild.tool.gnu.cross.c.linker"/>
 							<tool id="cdt.managedbuild.tool.gnu.cross.cpp.linker.836958584" name="Cross G++ Linker" superClass="cdt.managedbuild.tool.gnu.cross.cpp.linker">
 								<option id="gnu.cpp.link.option.libs.95138944" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="pthread"/>
+									<listOptionValue builtIn="false" value="bfd"/>
 									<listOptionValue builtIn="false" value="udt"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.2048182312" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
@@ -102,7 +103,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/runner-include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.bfd_1.7.0/runner-include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyy/.eclipse/org.eclipse.platform_3.7.0_1473617060/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/runner-include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyy/.eclipse/org.eclipse.platform_3.7.0_1473617060/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/xplat}&quot;"/>
