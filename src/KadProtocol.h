@@ -4,7 +4,7 @@
 #include "KadConfig.h"
 #include "KadNodeId.h"
 #include "KadSocket.h"
-
+/*
 enum KadMsgType
 {
 	KADMSG_PING,
@@ -70,5 +70,5 @@ public:
 	}
 
 } GCC_SPECIFIC(__attribute__((packed)));
-
+*/
 #endif /* KAD_PROTOCOL_H_ */

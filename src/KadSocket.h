@@ -49,7 +49,7 @@ union KadAddr
 	static KadAddr FromIPv4(uint32_t addr, uint16_t port) {
 		KadAddr res;
 		res.sa_in.sin_family = AF_INET;
-		res.sa_in.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+		res.sa_in.sin_addr.s_addr = htonl(addr);
 		res.sa_in.sin_port = htons(port);
 		return res;
 	}
@@ -124,10 +124,10 @@ public:
 
 	ssize_t SendTo(const void* data, size_t len, const KadAddr& addr);
 
-	template <class T>
+	/*template <class T>
 	bool SendStructTo(const T& obj, const KadAddr& addr) {
 		return SendTo(&obj, sizeof(obj), addr) == sizeof(obj);
-	}
+	}*/
 
 	ssize_t RecvFrom(void* data, size_t len, KadAddr* addr);
 

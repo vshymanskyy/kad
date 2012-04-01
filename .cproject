@@ -24,10 +24,8 @@
 								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.option.optimization.level.213924973" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.debugging.level.1215850791" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.include.paths.923386089" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/gen}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/kad}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/xplat/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/xplat}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.132118306" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -35,15 +33,9 @@
 								<option id="gnu.cpp.compiler.option.optimization.level.1961264010" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.debugging.level.1848368375" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.1429422231" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/kad}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/cajun}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/xplat/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/runner-include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.bfd_1.7.0/runner-include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyy/.eclipse/org.eclipse.platform_3.7.0_1473617060/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/runner-include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyy/.eclipse/org.eclipse.platform_3.7.0_1473617060/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/xplat}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/include&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.other.other.812955972" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -finstrument-functions" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1603810239" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
@@ -52,6 +44,7 @@
 							<tool id="cdt.managedbuild.tool.gnu.cross.cpp.linker.836958584" name="Cross G++ Linker" superClass="cdt.managedbuild.tool.gnu.cross.cpp.linker">
 								<option id="gnu.cpp.link.option.libs.95138944" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="pthread"/>
+									<listOptionValue builtIn="false" value="rt"/>
 									<listOptionValue builtIn="false" value="bfd"/>
 									<listOptionValue builtIn="false" value="udt"/>
 								</option>
@@ -87,10 +80,8 @@
 								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.option.optimization.level.1786040400" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.debugging.level.756961877" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.include.paths.1377487002" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/gen}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/kad}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/xplat/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/xplat}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.301393638" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -98,14 +89,9 @@
 								<option id="gnu.cpp.compiler.option.optimization.level.1090228811" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.debugging.level.1109807160" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.171162453" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/kad}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/cajun}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/xplat/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/runner-include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyi/eclipse/plugins/net.sf.webcat.eclipse.cxxtest.bfd_1.7.0/runner-include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyy/.eclipse/org.eclipse.platform_3.7.0_1473617060/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/runner-include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/home/vshymanskyy/.eclipse/org.eclipse.platform_3.7.0_1473617060/plugins/net.sf.webcat.eclipse.cxxtest.framework_1.7.0/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kad/src/xplat}&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.other.other.815246410" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.794600277" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
@@ -114,6 +100,8 @@
 							<tool id="cdt.managedbuild.tool.gnu.cross.cpp.linker.776905235" name="Cross G++ Linker" superClass="cdt.managedbuild.tool.gnu.cross.cpp.linker">
 								<option id="gnu.cpp.link.option.libs.876803644" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="pthread"/>
+									<listOptionValue builtIn="false" value="rt"/>
+									<listOptionValue builtIn="false" value="bfd"/>
 									<listOptionValue builtIn="false" value="udt"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1924792613" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">

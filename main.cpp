@@ -3,6 +3,7 @@
 #include "XLogUtils.h"
 #include "XCmdShell.h"
 #include "XTimeCounter.h"
+#include "KadTransactionMgr.h"
 
 #include <time.h>
 #include <sys/stat.h>
@@ -110,6 +111,15 @@ int StartNode(int argc, char *argv[])
 	return 0;
 }
 
+KadTransactionMgr mgr1(KadNodeId::Random(), 2001);
+KadTransactionMgr mgr2(KadNodeId::Random(), 2002);
+
+int TestPing(int argc, char *argv[])
+{
+	mgr1.Ping(KadAddr::FromIPv4(INADDR_LOOPBACK, 2002));
+	return 0;
+}
+
 int main()
 {
 	srand(time(NULL));
@@ -120,6 +130,7 @@ int main()
 	sh.RegisterCommand("test_rt", &TestRoutingTable);
 
 	sh.RegisterCommand("node", &StartNode);
+	sh.RegisterCommand("ping", &TestPing);
 
 	sh.Run();
 
