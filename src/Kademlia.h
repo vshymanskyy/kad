@@ -6,7 +6,6 @@
 #include "KadNodeId.h"
 #include "KadContact.h"
 #include "KadStats.h"
-#include "KadProtocol.h"
 
 #include "XThread.h"
 #include "XList.h"

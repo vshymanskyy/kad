@@ -4,7 +4,7 @@
 /**
  * Kademlia ID size
  **/
-#define KADEMLIA_ID_BITS 160
+#define KADEMLIA_ID_BITS 256
 #define KADEMLIA_ID_SIZE (KADEMLIA_ID_BITS/8)
 
 /**

@@ -124,10 +124,10 @@ public:
 
 	ssize_t SendTo(const void* data, size_t len, const KadAddr& addr);
 
-	/*template <class T>
+	template <class T>
 	bool SendStructTo(const T& obj, const KadAddr& addr) {
 		return SendTo(&obj, sizeof(obj), addr) == sizeof(obj);
-	}*/
+	}
 
 	ssize_t RecvFrom(void* data, size_t len, KadAddr* addr);
 
