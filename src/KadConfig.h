@@ -54,25 +54,24 @@
 /**
  * K-Bucket size (K).
  **/
-#define KADEMLIA_BUCKET_SIZE 20
+#define KADEMLIA_BUCKET_SIZE 16
 
 /**
  * Size of replacement cache.
  **/
-//#define KADEMLIA_CACHE_SIZE 7
+#define KADEMLIA_CACHE_SIZE 8
 
 /**
  * Number of times a node can be marked as stale before it is actually removed.
  **/
-#define KADEMLIA_STALE 3
+#define KADEMLIA_STALE
 
 /**
  * This is the biggest message that won't split in a real network.
  **/
-//#define KADEMLIA_MAX_MSG_SIZE 1400
-#define KADEMLIA_MAX_MSG_SIZE 576 // RFC 791 (1981).
+#define KADEMLIA_MAX_MSG_SIZE 1400
+//#define KADEMLIA_MAX_MSG_SIZE 576 // RFC 791 (1981).
 
-//#define KADEMLIA_CONTACT_INTERNAL
 
 //#define KADEMLIA_DBG_BIN_ID
 

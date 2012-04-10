@@ -19,16 +19,16 @@ int GenerateFiles(int argc, char *argv[])
 
 	for (int i = 0; i < NODES_QTY; i++) {
 		cnt[i].mId = KadNodeId::Random();
-		cnt[i].mExt = KadAddr::FromIPv4(INADDR_LOOPBACK, NODES_PORT+i);
+		cnt[i].mAddresses.Append(KadAddr::FromIPv4(INADDR_LOOPBACK, NODES_PORT+i));
 	}
 
 	for (int i = 0; i < NODES_QTY; i++) {
-		Kademlia kad(cnt[i].mId, cnt[i].mExt.Port());
+		Kademlia kad(cnt[i].mId, NODES_PORT+i);
 		for (int j = 0; j < NODES_QTY; j++) {
 			kad.Seen(cnt[j]);
 		}
 		char fn[32];
-		sprintf(fn, "nodes/kad_%d.bin", cnt[i].mExt.Port());
+		sprintf(fn, "nodes/kad_%d.bin", NODES_PORT+i);
 		kad.Save(fn);
 	}
 	return 0;

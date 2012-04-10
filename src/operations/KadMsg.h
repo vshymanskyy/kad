@@ -10,7 +10,7 @@ typedef uint32_t KadMsgId;
 class KadMsg
 {
 public:
-	enum Type
+	enum KadMsgType
 	{
 		PING,
 		PONG,
@@ -30,8 +30,9 @@ public:
 		//FIND_VAL_REQ,
 		//FIND_VAL_RSP
 	};
+
 public:
-	KadMsg(Type type, KadMsgId msgId, const KadNodeId& nodeId)
+	KadMsg(KadMsgType type, KadMsgId msgId, const KadNodeId& nodeId)
 		: mMsgType	(type)
 		, mMsgId	(htonl(msgId))
 		, mNodeId	(nodeId)
@@ -39,7 +40,7 @@ public:
 
 	//uint16_t Version() const { return ntohs(mVersion); }
 	uint32_t MsgId() const { return ntohl(mMsgId); }
-	Type MsgType() const { return Type(mMsgType); }
+	KadMsgType MsgType() const { return KadMsgType(mMsgType); }
 	const KadNodeId& NodeId() const { return mNodeId; }
 
 private:
@@ -47,6 +48,31 @@ private:
 	uint8_t mMsgType;
 	KadMsgId mMsgId;
 	KadNodeId mNodeId;
+
+} GCC_SPECIFIC(__attribute__((packed)));
+
+class KadMsgRsp : public KadMsg
+{
+public:
+	enum KadMsgStatus
+	{
+		STATUS_OK,
+		STATUS_FAILURE,
+		STATUS_TIMEOUT,
+		STATUS_NOT_FOUND,
+		STATUS_EXISTS,
+	};
+
+public:
+	KadMsgRsp(KadMsgType type, KadMsgId msgId, const KadNodeId& nodeId, KadMsgStatus status)
+		: KadMsg	(type, msgId, nodeId)
+		, mStatus	(status)
+	{}
+
+	KadMsgStatus Status() const { return KadMsgStatus(mStatus); }
+
+private:
+	uint8_t mStatus;
 
 } GCC_SPECIFIC(__attribute__((packed)));
 

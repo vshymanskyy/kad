@@ -10,12 +10,12 @@ public:
 
 } GCC_SPECIFIC(__attribute__((packed)));
 
-class KadMsgPong : public KadMsg
+class KadMsgPong : public KadMsgRsp
 {
 
 public:
 	KadMsgPong(KadMsgId msgId, const KadNodeId& nodeId)
-		: KadMsg(KadMsg::PONG, msgId, nodeId)
+		: KadMsgRsp(KadMsg::PONG, msgId, nodeId, KadMsgRsp::STATUS_OK)
 	{
 	}
 

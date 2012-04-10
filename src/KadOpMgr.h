@@ -3,7 +3,6 @@
 
 #include <XList.h>
 #include <XLog.h>
-#include <XTime.h>
 #include <XThread.h>
 #include <XDebug.h>
 #include <XDelegate.h>
@@ -11,7 +10,6 @@
 #include <XLocks.h>
 
 #include "KadConfig.h"
-
 
 #include "operations/KadPing.h"
 #include "operations/KadFindNode.h"
