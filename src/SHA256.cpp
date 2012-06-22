@@ -14,12 +14,12 @@
         | ( (uint32_t) (b)[(i) + 3]       );      \
 }
 
-#define PUT_UINT32(n,b,i)                         \
-{                                                 \
-    (b)[(i)    ] = (uint8_t) ( (n) >> 24 );       \
-    (b)[(i) + 1] = (uint8_t) ( (n) >> 16 );       \
-    (b)[(i) + 2] = (uint8_t) ( (n) >>  8 );       \
-    (b)[(i) + 3] = (uint8_t) ( (n)       );       \
+#define PUT_UINT32(n,b,i)							\
+{													\
+    (b)[(i)    ] = (uint8_t) ( (n) >> 24 & 0xFF );	\
+    (b)[(i) + 1] = (uint8_t) ( (n) >> 16 & 0xFF);   \
+    (b)[(i) + 2] = (uint8_t) ( (n) >>  8 & 0xFF);   \
+    (b)[(i) + 3] = (uint8_t) ( (n)       & 0xFF);   \
 }
 
 SHA256::SHA256()

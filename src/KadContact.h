@@ -3,24 +3,24 @@
 
 #include "KadConfig.h"
 #include "KadNodeId.h"
-#include "KadSocket.h"
+#include <net/XSockAddr.h>
 
 struct KadContact
 {
 	KadNodeId mId;
-	KadAddr mExt;
+	XSockAddr mExt;
 
 #if defined (KADEMLIA_CONTACT_INTERNAL)
-	KadAddr mInt;
+	XSockAddr mInt;
 #endif
 
 	static KadContact Random()
 	{
 		KadContact c;
 		c.mId = KadNodeId::Random();
-		c.mExt = KadAddr::Random();
+		c.mExt = XSockAddr::Random();
 #if defined (KADEMLIA_CONTACT_INTERNAL)
-		c.mInt = KadAddr::Random();
+		c.mInt = XSockAddr::Random();
 #endif
 		return c;
 	}
@@ -29,7 +29,7 @@ struct KadContact
 
 inline
 const XLog::Stream& operator <<(const XLog::Stream& str, const KadContact& v) {
-	return str << "{ id: " << v.mId << ", ext: " << v.mExt
+	return str << "{ id: " << v.mId << ", ext: " << v.mExt.ToString()
 	#if defined (KADEMLIA_CONTACT_INTERNAL)
 		<< ", int: " << v.mInt
 	#endif

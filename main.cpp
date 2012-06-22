@@ -9,33 +9,35 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#if 0
 const int NODES_QTY = 10;
 const int NODES_PORT = 3010;
 
 KadContact cnt[NODES_QTY];
 
-int GenerateFiles(int argc, char *argv[])
+int GenerateFiles(int argc, const char *argv[])
 {
+	X_UNUSED(argc);
+	X_UNUSED(argv);
 	mkdir("nodes", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
 	for (int i = 0; i < NODES_QTY; i++) {
 		cnt[i].mId = KadNodeId::Random();
-		cnt[i].mExt = KadAddr::FromIPv4(INADDR_LOOPBACK, NODES_PORT+i);
+		cnt[i].mExt = XSockAddr::FromString);
 	}
 
 	for (int i = 0; i < NODES_QTY; i++) {
-		Kademlia kad(cnt[i].mId, cnt[i].mExt.Port());
+		Kademlia kad(cnt[i].mId, 0);
 		for (int j = 0; j < NODES_QTY; j++) {
 			kad.Seen(cnt[j]);
 		}
 		char fn[32];
-		sprintf(fn, "nodes/kad_%d.bin", cnt[i].mExt.Port());
 		kad.Save(fn);
 	}
 	return 0;
 }
 
-int Simulate(int argc, char *argv[])
+int Simulate(int, const char**)
 {
 	Kademlia** nodes = new Kademlia*[NODES_QTY];
 	for (int i = 0; i < NODES_QTY; i++) {
@@ -59,7 +61,7 @@ int Simulate(int argc, char *argv[])
 	return 0;
 }
 
-int TestRoutingTable(int argc, char *argv[])
+int TestRoutingTable(int, const char**)
 {
 	Kademlia kad(KadNodeId::Random(), 0);
 
@@ -74,20 +76,20 @@ int TestRoutingTable(int argc, char *argv[])
 
 Kademlia* node;
 
-int NodeJoin(int argc, char *argv[])
+int NodeJoin(int, char**)
 {
 	node = Kademlia::Load("nodes/kad_3010.bin", 3010);
 	node->Join();
 	return 0;
 }
 
-int NodeLeave(int argc, char *argv[])
+int NodeLeave(int, char**)
 {
 	node->Leave();
 	return 0;
 }
 
-int NodeFind(int argc, char *argv[])
+int NodeFind(int, char**)
 {
 	Contact cnt;
 	KadNodeId id = KadNodeId::Random();
@@ -100,7 +102,7 @@ int NodeFind(int argc, char *argv[])
 	return 0;
 }
 
-int StartNode(int argc, char *argv[])
+int StartNode(int, char**)
 {
 	XShell sh("node");
 
@@ -111,28 +113,72 @@ int StartNode(int argc, char *argv[])
 	return 0;
 }
 
-KadTransactionMgr mgr1(KadNodeId::Random(), 2001);
-KadTransactionMgr mgr2(KadNodeId::Random(), 2002);
+//KadTransactionMgr mgr1(KadNodeId::Random(), 2001);
+//KadTransactionMgr mgr2(KadNodeId::Random(), 2002);
 
-int TestPing(int argc, char *argv[])
-{
-	mgr1.Ping(KadAddr::FromIPv4(INADDR_LOOPBACK, 2002));
-	return 0;
-}
+//int TestPing(int argc, const char *argv[])
+//{
+//	mgr1.Ping(KadAddr::FromIPv4(INADDR_LOOPBACK, 2002));
+//	return 0;
+//}
 
-int main()
-{
-	srand(time(NULL));
+#endif
 
-	XShell sh("kad");
-	sh.RegisterCommand("sim", &Simulate);
-	sh.RegisterCommand("gen", &GenerateFiles);
-	sh.RegisterCommand("test_rt", &TestRoutingTable);
+#if defined (TEST)
 
-	sh.RegisterCommand("node", &StartNode);
-	sh.RegisterCommand("ping", &TestPing);
+	int main(int argc, char **argv)
+	{
+		srand(time(NULL));
 
-	sh.Run();
+		XShell sh("kad");
+		sh.RegisterCommand("sim", &Simulate);
+		sh.RegisterCommand("gen", &GenerateFiles);
+		sh.RegisterCommand("test_rt", &TestRoutingTable);
 
-	return 0;
-}
+		sh.RegisterCommand("node", &StartNode);
+		//sh.RegisterCommand("ping", &TestPing);
+
+		sh.Run();
+
+		return 0;
+	}
+
+#elif PERF_TEST
+
+	#include <cxxtest/RealDescriptions.h>
+	#include <cxxtest/TestMain.h>
+	#include <cxxtest/ErrorFormatter.h>
+
+	int main(int argc, char **argv)
+	{
+		CxxTest::ErrorFormatter tmp(new CxxTest::OutputStream(), "", "" );
+		if (argc < 2) {
+			printf("Please specify the test suite:\n");
+			const char* arg[] = { argv[0], "--help-tests" };
+			return CxxTest::Main<CxxTest::ErrorFormatter>( tmp, 2, (char**)arg );
+		}
+
+		XTimeCounter t;
+		for (int i=0; i < 1000; i++) {
+			CxxTest::Main<CxxTest::ErrorFormatter>( tmp, argc, argv );
+		}
+		printf("Test finished in %d ms\n", t.Elapsed());
+		return 0;
+	}
+
+#else
+
+	#include <cxxtest/RealDescriptions.h>
+	#include <cxxtest/TestMain.h>
+	#include <cxxtest/StdioPrinter.h>
+
+	int main(int argc, char **argv)
+	{
+		CxxTest::StdioPrinter tmp;
+		XTimeCounter t;
+		int status = CxxTest::Main<CxxTest::StdioPrinter>( tmp, argc, argv );
+		printf("Test finished in %d ms\n", t.Elapsed());
+		return status;
+	}
+
+#endif

@@ -9,24 +9,19 @@
 #include <XDelegate.h>
 #include <XTimer.h>
 #include <XLocks.h>
+#include <net/XSocketUdp.h>
 
 #include <KadConfig.h>
-#include <KadSocket.h>
 #include <KadProtocol.h>
-#include <json/elements.h>
-#include <json/reader.h>
-#include <json/writer.h>
 
 class KadTransactionMgr : public XThread
 {
 private:
 	virtual int Run()
 	{
-		KadAddr from;
+		XSockAddr from;
 
-		mSocket.GetBindAddr(&from);
-
-		LOG(mLog, "Bound to address " << from)
+		LOG(mLog, "Bound to address " << mSocket.GetBindAddr().ToString())
 
 		char buffer[KADEMLIA_MAX_MSG_SIZE];
 		while (!IsStopping()) {
@@ -38,7 +33,7 @@ private:
 
 			LOG(mLog, FMT("Recv (%ld): ", len) << buffer);
 
-			std::istringstream strm(buffer);
+			/*std::istringstream strm(buffer);
 			json::Object req;
 			json::Reader::Read(req, strm);
 			json::String& type = req["type"];
@@ -57,7 +52,7 @@ private:
 					LOG(mLog, "Ping transaction not found");
 				}
 				break;
-			}
+			}*/
 
 		}
 		return 0;
@@ -81,12 +76,12 @@ private:
 	};
 
 	struct PingTransaction : public Transaction {
-		PingTransaction(KadTransactionMgr* mgr, uint32_t id, const KadAddr& addr)
+		PingTransaction(KadTransactionMgr* mgr, uint32_t id, const XSockAddr& addr)
 			: Transaction (mgr, id), mAddr(addr)
 		{
 			XPlatGetTime(&mSent, NULL);
 		}
-		KadAddr mAddr;
+		XSockAddr mAddr;
 		XPlatDateTime mSent;
 
 		void Unlock() {
@@ -96,11 +91,11 @@ private:
 		void Execute() {
 			mWaitMx.TryLock();
 
-			json::Object obj;
+			/*json::Object obj;
 			obj["id"] = json::String("");
 			obj["tid"] = json::Number(mId);
 			obj["type"] = json::String("ping");
-			mMgr->SendJsonTo(obj, mAddr);
+			mMgr->SendJsonTo(obj, mAddr);*/
 
 			if (mWaitMx.Lock(5)) {
 				LOG(NULL, "Pong!!!");
@@ -138,7 +133,7 @@ public:
 	KadTransactionMgr(const KadNodeId& id, uint16_t port)
 		: mMyId (id)
 	{
-		mSocket.Bind(port);
+		//mSocket.Bind(port);
 		Start();
 	}
 
@@ -146,14 +141,14 @@ public:
 
 	}
 
-	bool SendJsonTo(const json::Object& obj, const KadAddr& addr) {
-		std::ostringstream strm;
-		json::Writer::Write(obj, strm);
-		return mSocket.SendTo(strm.str().c_str(), strm.str().length(), addr) == sizeof(obj);
-	}
+	//bool SendJsonTo(const json::Object& obj, const KadAddr& addr) {
+		//std::ostringstream strm;
+		//json::Writer::Write(obj, strm);
+		//return mSocket.SendTo(strm.str().c_str(), strm.str().length(), addr) == sizeof(obj);
+	//}
 
 
-	void Ping(const KadAddr& address)
+	void Ping(const XSockAddr& address)
 	{
 		PingTransaction* t = new PingTransaction(this, FindUnusedTransactionId(mPings), address);
 		XList<PingTransaction*>::It ping = mPings.Append(t);
@@ -165,7 +160,7 @@ private:
 	XList<PingTransaction*> mPings;
 
 	XLog mLog;
-	KadSocket mSocket;
+	XSocketUdp mSocket;
 	XTimerContext mTimers;
 	KadNodeId mMyId;
 };

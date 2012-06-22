@@ -189,7 +189,7 @@ void SHA1::Update(const void* data, unsigned int len)
 
 void SHA1::Finalize(uint8_t digest[20])
 {
-	unsigned long i = 0, j = 0;
+	unsigned long i = 0;
 	uint8_t finalcount[8] =
 		{ 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -209,7 +209,6 @@ void SHA1::Finalize(uint8_t digest[20])
 
 	// Wipe variables for security reasons
 	i = 0;
-	j = 0;
 
 	memset(mBuffer, 0, 64);
 	memset(mState, 0, 20);

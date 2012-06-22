@@ -2,7 +2,7 @@
 #define ROUTING_TABLE_H_
 
 #include "KadConfig.h"
-#include "KadSocket.h"
+#include <net/XSocketUdp.h>
 #include "KadNodeId.h"
 #include "KadContact.h"
 #include "KadStats.h"

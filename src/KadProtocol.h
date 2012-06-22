@@ -3,7 +3,7 @@
 
 #include "KadConfig.h"
 #include "KadNodeId.h"
-#include "KadSocket.h"
+#include <net/XSocketUdp.h>
 /*
 enum KadMsgType
 {

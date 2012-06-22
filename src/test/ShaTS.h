@@ -13,8 +13,8 @@ inline void Raw2Hex(const uint8_t* data, size_t len, char* buffer)
 #define TEST_SHA_STRING(SHA, str, dgst)			\
 {												\
 	SHA sha;									\
-	uint8_t digest[sha.GetHashLength()];		\
-	char digestStr[sha.GetHashLength()*2+2];	\
+	uint8_t digest[256];						\
+	char digestStr[512];						\
 	sha.Update(str, strlen(str));				\
 	sha.Finalize(digest);	\
 	Raw2Hex(digest, sha.GetHashLength(), digestStr); \
