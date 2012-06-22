@@ -6,7 +6,6 @@
 #include "KadNodeId.h"
 #include "KadContact.h"
 #include "KadStats.h"
-#include "KadProtocol.h"
 
 #include "XThread.h"
 #include "XList.h"
@@ -160,9 +159,9 @@ class Kademlia
 
 public:
 	Kademlia(const KadNodeId& id = KadNodeId::Random(), uint16_t port = 0)
-			: mLocalId(id)
-			, mRoutingTable(new Node(0, KadNodeId::Zero()))
-			, mLog("Kad")
+		: mLocalId(id)
+		, mRoutingTable(new Node(0, KadNodeId::Zero()))
+		, mLog("Kad")
 	{
 
 	}

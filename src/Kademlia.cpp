@@ -38,9 +38,8 @@ bool Node::AddNode(const Contact& newNode, const KadDistance& d)
 			mBucket->mCache.Append(newNode);
 			return true;
 #endif
-		} else {
-			return false;
 		}
+		return false;
 	}
 }
 

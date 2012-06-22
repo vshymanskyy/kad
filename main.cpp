@@ -3,115 +3,114 @@
 #include "XLogUtils.h"
 #include "XCmdShell.h"
 #include "XTimeCounter.h"
-#include "KadTransactionMgr.h"
 
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#if 0
-const int NODES_QTY = 10;
-const int NODES_PORT = 3010;
+#if 1
 
-KadContact cnt[NODES_QTY];
+	const int NODES_QTY = 10;
+	const int NODES_PORT = 3010;
 
-int GenerateFiles(int argc, const char *argv[])
-{
-	X_UNUSED(argc);
-	X_UNUSED(argv);
-	mkdir("nodes", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	KadContact cnt[NODES_QTY];
 
-	for (int i = 0; i < NODES_QTY; i++) {
-		cnt[i].mId = KadNodeId::Random();
-		cnt[i].mExt = XSockAddr::FromString);
-	}
+	int GenerateFiles(int , char **)
+	{
+		mkdir("nodes", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-	for (int i = 0; i < NODES_QTY; i++) {
-		Kademlia kad(cnt[i].mId, 0);
-		for (int j = 0; j < NODES_QTY; j++) {
-			kad.Seen(cnt[j]);
+		for (int i = 0; i < NODES_QTY; i++) {
+			cnt[i].mId = KadNodeId::Random();
+			cnt[i].mAddresses.Append(XSockAddr("::1"));
 		}
-		char fn[32];
-		kad.Save(fn);
-	}
-	return 0;
-}
 
-int Simulate(int, const char**)
-{
-	Kademlia** nodes = new Kademlia*[NODES_QTY];
-	for (int i = 0; i < NODES_QTY; i++) {
-		char fn[32];
-		sprintf(fn, "nodes/kad_%d.bin", NODES_PORT+i);
-		nodes[i] = Kademlia::Load(fn, NODES_PORT+i);
-		nodes[i]->DumpTable();
+		for (int i = 0; i < NODES_QTY; i++) {
+			Kademlia kad(cnt[i].mId, NODES_PORT+i);
+			for (int j = 0; j < NODES_QTY; j++) {
+				kad.Seen(cnt[j]);
+			}
+			char fn[32];
+			sprintf(fn, "nodes/kad_%d.bin", NODES_PORT+i);
+			kad.Save(fn);
+		}
+		return 0;
 	}
 
-	//for (int i = 0; i < NODES_QTY; i++) {
-	//	nodes[i]->Start();
-	//}
+	int Simulate(int, char**)
+	{
+		Kademlia** nodes = new Kademlia*[NODES_QTY];
+		for (int i = 0; i < NODES_QTY; i++) {
+			char fn[32];
+			sprintf(fn, "nodes/kad_%d.bin", NODES_PORT+i);
+			nodes[i] = Kademlia::Load(fn, NODES_PORT+i);
+			nodes[i]->DumpTable();
+		}
 
-	getchar();
+		//for (int i = 0; i < NODES_QTY; i++) {
+		//	nodes[i]->Start();
+		//}
 
-	for (int i = 0; i < NODES_QTY; i++) {
-		delete  nodes[i];
+		getchar();
+
+		for (int i = 0; i < NODES_QTY; i++) {
+			delete  nodes[i];
+		}
+		delete[] nodes;
+
+		return 0;
 	}
-	delete[] nodes;
 
-	return 0;
-}
+	int TestRoutingTable(int, char**)
+	{
+		Kademlia kad(KadNodeId::Random(), 0);
 
-int TestRoutingTable(int, const char**)
-{
-	Kademlia kad(KadNodeId::Random(), 0);
+		for (int i = 0; i < 10000; i++) {
+			kad.Seen(Contact::Random());
+		}
 
-	for (int i = 0; i < 10000; i++) {
-		kad.Seen(Contact::Random());
+		kad.DumpTable();
+
+		return 0;
 	}
 
-	kad.DumpTable();
+	Kademlia* node;
 
-	return 0;
-}
-
-Kademlia* node;
-
-int NodeJoin(int, char**)
-{
-	node = Kademlia::Load("nodes/kad_3010.bin", 3010);
-	node->Join();
-	return 0;
-}
-
-int NodeLeave(int, char**)
-{
-	node->Leave();
-	return 0;
-}
-
-int NodeFind(int, char**)
-{
-	Contact cnt;
-	KadNodeId id = KadNodeId::Random();
-	LOG(NULL, "Searching for: " << id);
-	if(node->FindNode(id, &cnt)) {
-		LOG(NULL, "Found: " << cnt);
-	} else {
-		LOG(NULL, "Not found");
+	int NodeJoin(int, char**)
+	{
+		node = Kademlia::Load("nodes/kad_3010.bin", 3010);
+		node->Join();
+		return 0;
 	}
-	return 0;
-}
 
-int StartNode(int, char**)
-{
-	XShell sh("node");
+	int NodeLeave(int, char**)
+	{
+		node->Leave();
+		return 0;
+	}
 
-	sh.RegisterCommand("join", &NodeJoin);
-	sh.RegisterCommand("leave", &NodeLeave);
-	sh.RegisterCommand("find", &NodeFind);
-	sh.Run();
-	return 0;
-}
+	int NodeFind(int, char**)
+	{
+		Contact cnt;
+		KadNodeId id = KadNodeId::Random();
+		LOG(NULL, "Searching for: " << id);
+		if(node->FindNode(id, &cnt)) {
+			LOG(NULL, "Found: " << cnt);
+		} else {
+			LOG(NULL, "Not found");
+		}
+		return 0;
+	}
+
+	int StartNode(int, char**)
+	{
+		XShell sh("node");
+
+		sh.RegisterCommand("join", &NodeJoin);
+		sh.RegisterCommand("leave", &NodeLeave);
+		sh.RegisterCommand("find", &NodeFind);
+		sh.Run();
+		return 0;
+	}
 
 //KadTransactionMgr mgr1(KadNodeId::Random(), 2001);
 //KadTransactionMgr mgr2(KadNodeId::Random(), 2002);
@@ -122,9 +121,7 @@ int StartNode(int, char**)
 //	return 0;
 //}
 
-#endif
 
-#if defined (TEST)
 
 	int main(int argc, char **argv)
 	{
