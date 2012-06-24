@@ -118,24 +118,20 @@ public:
 		}
 	}
 
-/*
-	void Save(FILE* f) const
-	{
+
+	XList<KadContact> GetContacts() const {
+		XList<KadContact> result;
 		if (mBucket) {
 			for (XList<Contact>::It it = mBucket->mContacts.First(); it != mBucket->mContacts.End(); ++it) {
-				fwrite(&mBucket->mContacts[it], sizeof(Contact), 1, f);
+				result.Append(mBucket->mContacts[it]);
 			}
-#if KADEMLIA_CACHE_SIZE
-			for (XList<Contact>::It it = mBucket->mCache.First(); it != mBucket->mCache.End(); ++it) {
-				fwrite(&mBucket->mCache[it], sizeof(Contact), 1, f);
-			}
-#endif
 		} else {
-			mNext0->Save(f);
-			mNext1->Save(f);
+			result.Append(mNext0->GetContacts());
+			result.Append(mNext1->GetContacts());
 		}
+		return result;
 	}
-*/
+
 	XList<Contact>::It FindNodeById(const XList<Contact>& lst, const KadNodeId& id)
 	{
 		for (XList<Contact>::It it = lst.Last(); it != lst.End(); --it) {

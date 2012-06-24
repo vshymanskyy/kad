@@ -26,6 +26,12 @@ public:
 		TS_ASSERT(KadId<2>::FromHex("69A") == KadId<2>::FromHex("z69A"));
 	}
 
+	void testFromHash()
+	{
+		TS_ASSERT(KadId<20>::FromHash("", 0) == KadId<20>::FromHex("da39a3ee5e6b4b0d3255bfef95601890afd80709"));
+		TS_ASSERT(KadId<32>::FromHash("", 0) == KadId<32>::FromHex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+	}
+
 	void testOperations()
 	{
 		TS_ASSERT(KadNodeId::Zero().SetBit(KADEMLIA_ID_BITS-1) == KadNodeId::PowerOfTwo(0));

@@ -15,16 +15,19 @@ public:
 		KAD_MSG_PONG,
 		KAD_MSG_JOIN_REQ,
 		KAD_MSG_JOIN_RSP,
-		//KAD_MSG_RFIND_REQ,
-		//KAD_MSG_RFIND_RSP,
 		KAD_MSG_FIND_REQ,
-		KAD_MSG_FIND_RSP
-		//KAD_MSG_STORE_REQ,
-		//KAD_MSG_STORE_RSP,
-		//KAD_MSG_REMOVE_REQ,
-		//KAD_MSG_REMOVE_RSP,
-		//KAD_MSG_LEAVE_REQ,
-		//KAD_MSG_LEAVE_RSP,
+		KAD_MSG_FIND_RSP,
+		KAD_MSG_STORE_REQ,
+		KAD_MSG_STORE_RSP,
+		KAD_MSG_REMOVE_REQ,
+		KAD_MSG_REMOVE_RSP,
+		KAD_MSG_LEAVE_REQ,
+		KAD_MSG_LEAVE_RSP,
+
+		KAD_MSG_RFIND_REQ,
+		KAD_MSG_RFIND_RSP,
+
+		KAD_MSG_QTY
 	};
 
 public:
@@ -41,7 +44,7 @@ public:
 
 private:
 	//uint16_t mVersion;
-	uint8_t mMsgType;
+	uint16_t mMsgType;
 	KadMsgId mMsgId;
 	KadNodeId mNodeId;
 
@@ -68,9 +71,8 @@ public:
 	KadMsgStatus Status() const { return KadMsgStatus(mStatus); }
 
 private:
-	uint8_t mStatus;
+	uint16_t mStatus;
 
 } GCC_SPECIFIC(__attribute__((packed)));
-
 
 #endif /* KAD_MSG_H_ */

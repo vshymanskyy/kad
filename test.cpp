@@ -95,19 +95,19 @@ public:
 
 static class TestDescription_suite_XSockAddrTS_testLookup : public CxxTest::RealTestDescription {
 public:
- TestDescription_suite_XSockAddrTS_testLookup() : CxxTest::RealTestDescription( Tests_XSockAddrTS, suiteDescription_XSockAddrTS, 87, "testLookup" ) {}
+ TestDescription_suite_XSockAddrTS_testLookup() : CxxTest::RealTestDescription( Tests_XSockAddrTS, suiteDescription_XSockAddrTS, 91, "testLookup" ) {}
  void runTest() { suite_XSockAddrTS.testLookup(); }
 } testDescription_suite_XSockAddrTS_testLookup;
 
 static class TestDescription_suite_XSockAddrTS_testResolve : public CxxTest::RealTestDescription {
 public:
- TestDescription_suite_XSockAddrTS_testResolve() : CxxTest::RealTestDescription( Tests_XSockAddrTS, suiteDescription_XSockAddrTS, 92, "testResolve" ) {}
+ TestDescription_suite_XSockAddrTS_testResolve() : CxxTest::RealTestDescription( Tests_XSockAddrTS, suiteDescription_XSockAddrTS, 96, "testResolve" ) {}
  void runTest() { suite_XSockAddrTS.testResolve(); }
 } testDescription_suite_XSockAddrTS_testResolve;
 
 static class TestDescription_suite_XSockAddrTS_testLocal : public CxxTest::RealTestDescription {
 public:
- TestDescription_suite_XSockAddrTS_testLocal() : CxxTest::RealTestDescription( Tests_XSockAddrTS, suiteDescription_XSockAddrTS, 108, "testLocal" ) {}
+ TestDescription_suite_XSockAddrTS_testLocal() : CxxTest::RealTestDescription( Tests_XSockAddrTS, suiteDescription_XSockAddrTS, 112, "testLocal" ) {}
  void runTest() { suite_XSockAddrTS.testLocal(); }
 } testDescription_suite_XSockAddrTS_testLocal;
 
@@ -382,19 +382,6 @@ public:
  void runTest() { suite_TimingTS.testTimerDrift(); }
 } testDescription_suite_TimingTS_testTimerDrift;
 
-#include "./src/test/KadConnMgrTS.h"
-
-static KadConnMgrTS suite_KadConnMgrTS;
-
-static CxxTest::List Tests_KadConnMgrTS = { 0, 0 };
-CxxTest::StaticSuiteDescription suiteDescription_KadConnMgrTS( "./src/test/KadConnMgrTS.h", 4, "KadConnMgrTS", suite_KadConnMgrTS, Tests_KadConnMgrTS );
-
-static class TestDescription_suite_KadConnMgrTS_testPing : public CxxTest::RealTestDescription {
-public:
- TestDescription_suite_KadConnMgrTS_testPing() : CxxTest::RealTestDescription( Tests_KadConnMgrTS, suiteDescription_KadConnMgrTS, 8, "testPing" ) {}
- void runTest() { suite_KadConnMgrTS.testPing(); }
-} testDescription_suite_KadConnMgrTS_testPing;
-
 #include "./src/test/KademliaTS.h"
 
 static KademliaTS suite_KademliaTS;
@@ -415,15 +402,21 @@ static KadOpMgrTS suite_KadOpMgrTS;
 static CxxTest::List Tests_KadOpMgrTS = { 0, 0 };
 CxxTest::StaticSuiteDescription suiteDescription_KadOpMgrTS( "./src/test/KadOpMgrTS.h", 4, "KadOpMgrTS", suite_KadOpMgrTS, Tests_KadOpMgrTS );
 
+static class TestDescription_suite_KadOpMgrTS_testMsgSizes : public CxxTest::RealTestDescription {
+public:
+ TestDescription_suite_KadOpMgrTS_testMsgSizes() : CxxTest::RealTestDescription( Tests_KadOpMgrTS, suiteDescription_KadOpMgrTS, 8, "testMsgSizes" ) {}
+ void runTest() { suite_KadOpMgrTS.testMsgSizes(); }
+} testDescription_suite_KadOpMgrTS_testMsgSizes;
+
 static class TestDescription_suite_KadOpMgrTS_testPing : public CxxTest::RealTestDescription {
 public:
- TestDescription_suite_KadOpMgrTS_testPing() : CxxTest::RealTestDescription( Tests_KadOpMgrTS, suiteDescription_KadOpMgrTS, 61, "testPing" ) {}
+ TestDescription_suite_KadOpMgrTS_testPing() : CxxTest::RealTestDescription( Tests_KadOpMgrTS, suiteDescription_KadOpMgrTS, 66, "testPing" ) {}
  void runTest() { suite_KadOpMgrTS.testPing(); }
 } testDescription_suite_KadOpMgrTS_testPing;
 
 static class TestDescription_suite_KadOpMgrTS_testJoin : public CxxTest::RealTestDescription {
 public:
- TestDescription_suite_KadOpMgrTS_testJoin() : CxxTest::RealTestDescription( Tests_KadOpMgrTS, suiteDescription_KadOpMgrTS, 67, "testJoin" ) {}
+ TestDescription_suite_KadOpMgrTS_testJoin() : CxxTest::RealTestDescription( Tests_KadOpMgrTS, suiteDescription_KadOpMgrTS, 72, "testJoin" ) {}
  void runTest() { suite_KadOpMgrTS.testJoin(); }
 } testDescription_suite_KadOpMgrTS_testJoin;
 
@@ -440,27 +433,33 @@ public:
  void runTest() { suite_KadNodeIdTS.testFromHex(); }
 } testDescription_suite_KadNodeIdTS_testFromHex;
 
+static class TestDescription_suite_KadNodeIdTS_testFromHash : public CxxTest::RealTestDescription {
+public:
+ TestDescription_suite_KadNodeIdTS_testFromHash() : CxxTest::RealTestDescription( Tests_KadNodeIdTS, suiteDescription_KadNodeIdTS, 29, "testFromHash" ) {}
+ void runTest() { suite_KadNodeIdTS.testFromHash(); }
+} testDescription_suite_KadNodeIdTS_testFromHash;
+
 static class TestDescription_suite_KadNodeIdTS_testOperations : public CxxTest::RealTestDescription {
 public:
- TestDescription_suite_KadNodeIdTS_testOperations() : CxxTest::RealTestDescription( Tests_KadNodeIdTS, suiteDescription_KadNodeIdTS, 29, "testOperations" ) {}
+ TestDescription_suite_KadNodeIdTS_testOperations() : CxxTest::RealTestDescription( Tests_KadNodeIdTS, suiteDescription_KadNodeIdTS, 35, "testOperations" ) {}
  void runTest() { suite_KadNodeIdTS.testOperations(); }
 } testDescription_suite_KadNodeIdTS_testOperations;
 
 static class TestDescription_suite_KadNodeIdTS_testCompare : public CxxTest::RealTestDescription {
 public:
- TestDescription_suite_KadNodeIdTS_testCompare() : CxxTest::RealTestDescription( Tests_KadNodeIdTS, suiteDescription_KadNodeIdTS, 45, "testCompare" ) {}
+ TestDescription_suite_KadNodeIdTS_testCompare() : CxxTest::RealTestDescription( Tests_KadNodeIdTS, suiteDescription_KadNodeIdTS, 51, "testCompare" ) {}
  void runTest() { suite_KadNodeIdTS.testCompare(); }
 } testDescription_suite_KadNodeIdTS_testCompare;
 
 static class TestDescription_suite_KadNodeIdTS_testDistanceTo : public CxxTest::RealTestDescription {
 public:
- TestDescription_suite_KadNodeIdTS_testDistanceTo() : CxxTest::RealTestDescription( Tests_KadNodeIdTS, suiteDescription_KadNodeIdTS, 64, "testDistanceTo" ) {}
+ TestDescription_suite_KadNodeIdTS_testDistanceTo() : CxxTest::RealTestDescription( Tests_KadNodeIdTS, suiteDescription_KadNodeIdTS, 70, "testDistanceTo" ) {}
  void runTest() { suite_KadNodeIdTS.testDistanceTo(); }
 } testDescription_suite_KadNodeIdTS_testDistanceTo;
 
 static class TestDescription_suite_KadNodeIdTS_testCloser : public CxxTest::RealTestDescription {
 public:
- TestDescription_suite_KadNodeIdTS_testCloser() : CxxTest::RealTestDescription( Tests_KadNodeIdTS, suiteDescription_KadNodeIdTS, 84, "testCloser" ) {}
+ TestDescription_suite_KadNodeIdTS_testCloser() : CxxTest::RealTestDescription( Tests_KadNodeIdTS, suiteDescription_KadNodeIdTS, 90, "testCloser" ) {}
  void runTest() { suite_KadNodeIdTS.testCloser(); }
 } testDescription_suite_KadNodeIdTS_testCloser;
 

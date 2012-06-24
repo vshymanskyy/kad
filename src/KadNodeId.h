@@ -193,7 +193,7 @@ public:
 		return *this;
 	}
 
-	bool IsZero() {
+	bool IsZero() const {
 		for (unsigned i = 0; i < sizeof(mData); i++) {
 			if (mData[i])
 				return false;

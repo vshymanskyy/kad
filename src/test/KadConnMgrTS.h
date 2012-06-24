@@ -1,11 +1,11 @@
 #include "KadConnMgr.h"
 #include <cxxtest/TestSuite.h>
 
-class KadConnMgrTS: public CxxTest::TestSuite
+class KadConnMgrTS//: public CxxTest::TestSuite
 {
 public:
 
-	void testPing(void)
+	void testMessage(void)
 	{
 		XSockAddr a("127.0.0.1:3004");
 		XSockAddr b("127.0.0.1:3005");

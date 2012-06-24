@@ -5,7 +5,8 @@
 #include "KadNodeId.h"
 #include <net/XSockAddr.h>
 
-struct KadAddrInfo {
+struct KadContact
+{
 	enum Type {
 		UNKNOWN,
 		// External addresses
@@ -22,61 +23,43 @@ struct KadAddrInfo {
 		SAME_LAN		// appears to be on same LAN
 	};
 
-	XSockAddr mAddr;
-	Type mType;
-	unsigned mRTT;
-
-	KadAddrInfo(const XSockAddr& addr, Type type = UNKNOWN, unsigned rtt = 0) : mAddr(addr), mType(type), mRTT(rtt) {}
-};
-
-struct KadContact
-{
-	KadNodeId mId;
-	XList<KadAddrInfo> mAddresses;
-
-	enum State {
-		ACTIVE,
-		STALE
-	} mState;
+	KadNodeId	mId;
+	XSockAddr	mAddrExt;
+	XSockAddr	mAddrInt;
+	Type		mType;
+	unsigned	mFailQty;
+	unsigned	mRTT;
 
 	KadContact() {}
 
-	KadContact(const KadNodeId& id, const XSockAddr& addr)
-		: mId(id)
+	KadContact(const KadNodeId& id, const XSockAddr& extr, const XSockAddr& intr = XSockAddr())
+		: mId		(id)
+		, mAddrExt	(extr)
+		, mAddrInt	(intr)
+		, mType		(UNKNOWN)
+		, mFailQty	(0)
+		, mRTT		(0)
 	{
-		mAddresses.Append(KadAddrInfo(addr));
 	}
 
-	static KadContact Random()
+	bool IsStale() const { return mFailQty >= KADEMLIA_STALE; }
+
+/*	static KadContact Random()
 	{
 		KadContact c;
 		c.mId = KadNodeId::Random();
 		for (int i=RandRange(1,3); i>0; i--) {
-			c.mAddresses.Append(KadAddrInfo(XSockAddr::Random()));
+			c.mAddrInt = (KadAddrInfo(XSockAddr::Random()));
 		}
 		c.mState = ACTIVE;
 		return c;
-	}
+	}*/
 };
 
 inline
-const XLog::Stream& operator <<(const XLog::Stream& str, const KadAddrInfo& c) {
-	return str << "{type:" << c.mType << ", addr:" << c.mAddr << ", rtt:" << c.mRTT << "}";
-}
-
-inline
 const XLog::Stream& operator <<(const XLog::Stream& str, const KadContact& c) {
-	if (c.mState == KadContact::ACTIVE) {
-		str << "Contact {id: ";
-	} else {
-		str << "Stale contact {id: ";
-	}
-	str << c.mId << " addresses: ";
-	for (XList<KadAddrInfo>::It it = c.mAddresses.First(); it != c.mAddresses.End(); ++it) {
-		str << c.mAddresses[it] << " ";
-	}
-
-	return str << "}";
+	return str << (c.IsStale()?"Stale contact {id: ":"Contact {id: ") << c.mId
+			<< " ext: " << c.mAddrExt.ToString() << " int: " << c.mAddrInt.ToString()  << "}";
 }
 
 #endif /* KAD_CONFIG_H_ */

@@ -5,11 +5,26 @@ class KadOpMgrTS : public CxxTest::TestSuite
 {
 public:
 
+	void testMsgSizes() {
+		LOG(NULL, "Req: " << sizeof(KadMsg));
+		LOG(NULL, "Rsp: " << sizeof(KadMsgRsp));
+
+		LOG(NULL, "Ping: " << sizeof(KadMsgPing));
+		LOG(NULL, "Pong: " << sizeof(KadMsgPong));
+
+		LOG(NULL, "Addr: " << sizeof(KadMsgAddr));
+		LOG(NULL, "Contact: " << sizeof(KadMsgContact));
+
+		LOG(NULL, "FindReq: " << sizeof(KadMsgFindReq));
+		LOG(NULL, "FindRsp: " << sizeof(KadMsgFindRsp));
+
+	}
+
 	class PingTester {
 	public:
 		PingTester()
-			: mgr1(KadNodeId::Random(), XSockAddr("127.0.0.1:3001"), XList<KadContact>())
-			, mgr2(KadNodeId::Random(), XSockAddr("127.0.0.1:3002"), XList<KadContact>())
+			: mgr1(KadNodeId::Random(), XSockAddr("127.0.0.1:3001"))
+			, mgr2(KadNodeId::Random(), XSockAddr("127.0.0.1:3002"))
 		{
 
 		}
@@ -35,31 +50,18 @@ public:
 	class JoinTester {
 	public:
 		JoinTester()
+			: mgrBSP(KadNodeId::Random(), XSockAddr("127.0.0.1:3000"))
+			, mgr1(KadNodeId::Random(), XSockAddr("127.0.0.1:3001"))
+			, mgr2(KadNodeId::Random(), XSockAddr("127.0.0.1:3002"))
+			, mgr3(KadNodeId::Random(), XSockAddr("127.0.0.1:3003"))
 		{
-			XList<KadContact> bsp1;
-			XList<KadContact> bsp2;
-			XList<KadContact> bsp3;
+			XList<KadContact> bootstrap(KadContact(mgrBSP.LocalId(), mgrBSP.BindAddr()));
 
-			KadNodeId id1 = KadNodeId::Random();
-			KadNodeId id2 = KadNodeId::Random();
-			KadNodeId id3 = KadNodeId::Random();
+			mgr1.Join(bootstrap);
+			mgr2.Join(bootstrap);
+			mgr3.Join(bootstrap);
 
-			XSockAddr addr1("127.0.0.1:3001");
-			XSockAddr addr2("127.0.0.1:3002");
-			XSockAddr addr3("127.0.0.1:3003");
-
-			bsp2.Append(KadContact(id1, addr1));
-			bsp3.Append(KadContact(id1, addr1));
-
-			mgr1 = new KadOpMgr(id1, addr1, bsp1);
-			mgr2 = new KadOpMgr(id2, addr2, bsp2);
-			mgr3 = new KadOpMgr(id3, addr3, bsp3);
-		}
-
-		~JoinTester() {
-			delete mgr1;
-			delete mgr2;
-			delete mgr3;
+			XThread::SleepMs(20);
 		}
 
 		void test() {
@@ -67,14 +69,7 @@ public:
 		}
 
 	private:
-		void pong() {
-			mFound = true;
-		}
-	private:
-		KadOpMgr* mgr1;
-		KadOpMgr* mgr2;
-		KadOpMgr* mgr3;
-		bool mFound;
+		KadOpMgr mgrBSP, mgr1, mgr2, mgr3;
 	};
 
 

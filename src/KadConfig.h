@@ -4,7 +4,7 @@
 /**
  * Kademlia ID size
  **/
-#define KADEMLIA_ID_BITS 256
+#define KADEMLIA_ID_BITS 160
 #define KADEMLIA_ID_SIZE (KADEMLIA_ID_BITS/8)
 
 /**
@@ -64,7 +64,7 @@
 /**
  * Number of times a node can be marked as stale before it is actually removed.
  **/
-#define KADEMLIA_STALE
+#define KADEMLIA_STALE 3
 
 /**
  * This is the biggest message that won't split in a real network.

@@ -19,9 +19,12 @@ bool KadRtNode::AddNode(const Contact& newNode, const KadDistance& d)
 			KAD_STATS.mAddExistingQty++;
 			return true;
 		} else if (mBucket->mContacts.Count() < KADEMLIA_BUCKET_SIZE) {
+			LOG(NULL, "New node: " << newNode.mId);
+
 			// Bucket is not full, insert the node
 			mBucket->mContacts.Append(newNode);
 			KAD_STATS.mAddNewQty++;
+
 			return true;
 		} else if (Split(newNode.mId ^ d)) {
 			return AddNode(newNode, d);

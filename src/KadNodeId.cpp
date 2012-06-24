@@ -3,7 +3,7 @@
 #include "SHA1.h"
 
 template<>
-KadId<256> KadId<256>::FromHash(const void* data, size_t len)
+KadId<32> KadId<32>::FromHash(const void* data, size_t len)
 {
 	KadId result;
 	SHA256 sha;
@@ -13,7 +13,7 @@ KadId<256> KadId<256>::FromHash(const void* data, size_t len)
 }
 
 template<>
-KadId<160> KadId<160>::FromHash(const void* data, size_t len)
+KadId<20> KadId<20>::FromHash(const void* data, size_t len)
 {
 	KadId result;
 	SHA1 sha;
