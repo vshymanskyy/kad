@@ -39,6 +39,14 @@ struct KadContact
 		STALE
 	} mState;
 
+	KadContact() {}
+
+	KadContact(const KadNodeId& id, const XSockAddr& addr)
+		: mId(id)
+	{
+		mAddresses.Append(KadAddrInfo(addr));
+	}
+
 	static KadContact Random()
 	{
 		KadContact c;

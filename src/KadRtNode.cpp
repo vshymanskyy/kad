@@ -1,7 +1,7 @@
-#include "Kademlia.h"
+#include "KadRtNode.h"
 #include "KadStats.h"
 
-bool Node::AddNode(const Contact& newNode, const KadDistance& d)
+bool KadRtNode::AddNode(const Contact& newNode, const KadDistance& d)
 {
 	if (!mBucket) {
 		// This is an internal space, choose a proper subspace
@@ -43,7 +43,7 @@ bool Node::AddNode(const Contact& newNode, const KadDistance& d)
 	}
 }
 
-bool Node::Split(const KadNodeId& localId)
+bool KadRtNode::Split(const KadNodeId& localId)
 {
 	assert(mBucket);
 	assert(!mNext0);
@@ -58,8 +58,8 @@ bool Node::Split(const KadNodeId& localId)
 	KadNodeId newIndex = mIndex;
 	newIndex.ShiftLeft();
 
-	mNext0 = new Node(mDepth + 1, newIndex);
-	mNext1 = new Node(mDepth + 1, newIndex | KadNodeId::PowerOfTwo(0));
+	mNext0 = new KadRtNode(mDepth + 1, newIndex);
+	mNext1 = new KadRtNode(mDepth + 1, newIndex | KadNodeId::PowerOfTwo(0));
 
 	const XList<Contact>& lst = mBucket->mContacts;
 	for (XList<Contact>::It it = lst.First(); it != lst.End(); ++it) {
@@ -73,7 +73,7 @@ bool Node::Split(const KadNodeId& localId)
 	return true;
 }
 
-bool Node::RemoveNode(const KadNodeId& id, const KadDistance& d)
+bool KadRtNode::RemoveNode(const KadNodeId& id, const KadDistance& d)
 {
 	if (!mBucket) {
 		// This is an internal space, choose appropriate subspace
@@ -101,7 +101,7 @@ bool Node::RemoveNode(const KadNodeId& id, const KadDistance& d)
 	}
 }
 
-int Node::GatherClosest(const KadNodeId& id, const KadDistance& d, KadContact* res, int qty) const
+int KadRtNode::GatherClosest(const KadNodeId& id, const KadDistance& d, KadContact* res, int qty) const
 {
 	if (qty <= 0)
 		return 0;

@@ -1,5 +1,4 @@
 #include "KadConfig.h"
-#include "Kademlia.h"
 #include "XLogUtils.h"
 #include "XCmdShell.h"
 #include "XTimeCounter.h"
@@ -8,7 +7,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#if 1
+#if 0
 
 	const int NODES_QTY = 10;
 	const int NODES_PORT = 3010;
@@ -171,6 +170,8 @@
 
 	int main(int argc, char **argv)
 	{
+		RandInit();
+
 		CxxTest::StdioPrinter tmp;
 		XTimeCounter t;
 		int status = CxxTest::Main<CxxTest::StdioPrinter>( tmp, argc, argv );

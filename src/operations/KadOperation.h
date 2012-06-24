@@ -4,12 +4,20 @@
 #include <XTime.h>
 #include "KadMsg.h"
 
+class KadOpMgr;
+
 class KadOperation {
 public:
-	KadOperation(KadMsgId id) : mId (id)
+	KadOperation(KadOpMgr* mgr, KadMsgId id)
+		: mId	(id)
+		, mMgr	(mgr)
 	{
 		XPlatGetTime(&mStarted, NULL);
 	}
+
+	virtual ~KadOperation() {}
+
+	virtual void Process(const KadMsgRsp* rsp) = 0;
 
 	class SelectById {
 	public:
@@ -20,9 +28,10 @@ public:
 		KadMsgId mId;
 	};
 
-private:
-	KadMsgId mId;
-	XPlatDateTime mStarted;
+protected:
+	KadMsgId		mId;
+	KadOpMgr*		mMgr;
+	XPlatDateTime	mStarted;
 };
 
 #endif //KAD_OPERATION_H_

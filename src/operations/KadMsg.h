@@ -3,7 +3,6 @@
 
 #include "KadConfig.h"
 #include "KadNodeId.h"
-#include <net/XSockAddr.h>
 
 typedef uint32_t KadMsgId;
 
@@ -12,23 +11,20 @@ class KadMsg
 public:
 	enum KadMsgType
 	{
-		PING,
-		PONG,
-		JOIN_REQ,
-		JOIN_RSP,
-		//LEAVE_REQ,
-		//LEAVE_RSP,
-		//STORE_REQ,
-		//STORE_RSP,
-		//REMOVE_REQ,
-		//REMOVE_RSP,
-		//RFIND_NODE_REQ,
-		//RFIND_NODE_RSP,
-		FIND_NODE_REQ,
-		FIND_NODE_RSP,
-
-		//FIND_VAL_REQ,
-		//FIND_VAL_RSP
+		KAD_MSG_PING,
+		KAD_MSG_PONG,
+		KAD_MSG_JOIN_REQ,
+		KAD_MSG_JOIN_RSP,
+		//KAD_MSG_RFIND_REQ,
+		//KAD_MSG_RFIND_RSP,
+		KAD_MSG_FIND_REQ,
+		KAD_MSG_FIND_RSP
+		//KAD_MSG_STORE_REQ,
+		//KAD_MSG_STORE_RSP,
+		//KAD_MSG_REMOVE_REQ,
+		//KAD_MSG_REMOVE_RSP,
+		//KAD_MSG_LEAVE_REQ,
+		//KAD_MSG_LEAVE_RSP,
 	};
 
 public:
@@ -56,11 +52,11 @@ class KadMsgRsp : public KadMsg
 public:
 	enum KadMsgStatus
 	{
-		STATUS_OK,
-		STATUS_FAILURE,
-		STATUS_TIMEOUT,
-		STATUS_NOT_FOUND,
-		STATUS_EXISTS,
+		KAD_MSG_STATUS_OK,
+		KAD_MSG_STATUS_FAILURE,
+		KAD_MSG_STATUS_TIMEOUT,
+		KAD_MSG_STATUS_NOT_FOUND,
+		KAD_MSG_STATUS_EXISTS,
 	};
 
 public:
