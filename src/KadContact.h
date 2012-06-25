@@ -44,6 +44,8 @@ struct KadContact
 
 	bool IsStale() const { return mFailQty >= KADEMLIA_STALE; }
 
+	bool operator == (const KadContact& c) { return mId == c.mId; }
+
 /*	static KadContact Random()
 	{
 		KadContact c;

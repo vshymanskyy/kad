@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 
-project (Kad)
+project (Kademlia)
 # The version number.
 set (KAD_VERSION_MAJOR 0)
 set (KAD_VERSION_MINOR 0)
