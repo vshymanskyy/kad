@@ -19,7 +19,7 @@ bool KadRtNode::AddNode(const Contact& newNode, const KadDistance& d)
 			KAD_STATS.mAddExistingQty++;
 			return true;
 		} else if (mBucket->mContacts.Count() < KADEMLIA_BUCKET_SIZE) {
-			LOG(NULL, "New node: " << newNode.mId);
+			//LOG(NULL, "New node: " << newNode.mId);
 
 			// Bucket is not full, insert the node
 			mBucket->mContacts.Append(newNode);
@@ -104,15 +104,15 @@ bool KadRtNode::RemoveNode(const KadNodeId& id, const KadDistance& d)
 	}
 }
 
-int KadRtNode::GatherClosest(const KadNodeId& id, const KadDistance& d, KadContact* res, int qty) const
+int KadRtNode::GatherClosest(const KadNodeId& id, const KadDistance& d, KadContact* res, int qty, const KadNodeId& except) const
 {
 	if (qty <= 0)
 		return 0;
 	if (!mBucket) {
-		int found = Closest(d)->GatherClosest(id, d, res, qty);
+		int found = Closest(d)->GatherClosest(id, d, res, qty, except);
 		assert(found >= 0);
 		if (found < qty) {
-			found += Farthest(d)->GatherClosest(id, d, res + found, qty - found);
+			found += Farthest(d)->GatherClosest(id, d, res + found, qty - found, except);
 		}
 		return found;
 	} else {
@@ -120,6 +120,9 @@ int KadRtNode::GatherClosest(const KadNodeId& id, const KadDistance& d, KadConta
 		// Find closest nodes in bucket
 		int found = 0;
 		for (XList<Contact>::It it = lst.First(); it != lst.End(); ++it) {
+			if (lst[it].mId == except)
+				continue;
+
 			if (found < qty) {
 				res[found++] = lst[it];
 			} else {

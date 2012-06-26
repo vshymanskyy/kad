@@ -219,7 +219,7 @@ public:
 		return 0;
 	}
 
-	// my.Closer(toA than tB)
+	// my.Closer(toA than toB)
 	bool Closer(const KadId& to, const KadId& than) const
 	{
 		return ((*this) ^ to) < ((*this) ^ than);

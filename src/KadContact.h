@@ -24,18 +24,16 @@ struct KadContact
 	};
 
 	KadNodeId	mId;
-	XSockAddr	mAddrExt;
-	XSockAddr	mAddrInt;
+	XSockAddr	mAddr;
 	Type		mType;
 	unsigned	mFailQty;
 	unsigned	mRTT;
 
 	KadContact() {}
 
-	KadContact(const KadNodeId& id, const XSockAddr& extr, const XSockAddr& intr = XSockAddr())
+	KadContact(const KadNodeId& id, const XSockAddr& extr)
 		: mId		(id)
-		, mAddrExt	(extr)
-		, mAddrInt	(intr)
+		, mAddr	(extr)
 		, mType		(UNKNOWN)
 		, mFailQty	(0)
 		, mRTT		(0)
@@ -61,7 +59,7 @@ struct KadContact
 inline
 const XLog::Stream& operator <<(const XLog::Stream& str, const KadContact& c) {
 	return str << (c.IsStale()?"Stale contact {id: ":"Contact {id: ") << c.mId
-			<< " ext: " << c.mAddrExt.ToString() << " int: " << c.mAddrInt.ToString()  << "}";
+			<< " ext: " << c.mAddr.ToString()  << "}";
 }
 
 #endif /* KAD_CONFIG_H_ */

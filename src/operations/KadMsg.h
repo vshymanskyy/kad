@@ -75,4 +75,5 @@ private:
 
 } GCC_SPECIFIC(__attribute__((packed)));
 
+
 #endif /* KAD_MSG_H_ */

@@ -86,7 +86,7 @@ public:
 
 	bool RemoveNode(const KadNodeId& id, const KadDistance& d);
 
-	int GatherClosest(const KadNodeId& id, const KadDistance& d, KadContact* res, int qty) const;
+	int GatherClosest(const KadNodeId& id, const KadDistance& d, KadContact* res, int qty, const KadNodeId& except) const;
 
 	bool IsSplittable()
 	{

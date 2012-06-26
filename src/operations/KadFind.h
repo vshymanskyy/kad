@@ -53,19 +53,17 @@ private:
 struct KadMsgContact
 {
 	KadNodeId	id;
-	KadMsgAddr	addr_ext;
-	KadMsgAddr	addr_int;
+	KadMsgAddr	addr;
 
 	KadMsgContact() {}
 
 	KadMsgContact(const KadContact& c)
 		: id(c.mId)
-		, addr_ext(c.mAddrExt)
-		, addr_int(c.mAddrInt)
+		, addr(c.mAddr)
 	{  }
 
 	operator KadContact() const {
-		return KadContact(id, XSockAddr(addr_ext), XSockAddr(addr_int));
+		return KadContact(id, XSockAddr(addr));
 	}
 } GCC_SPECIFIC(__attribute__((packed)));
 
@@ -93,7 +91,7 @@ public:
 	KadMsgFindRsp(KadMsgId msgId, const KadNodeId& nodeId, KadMsgStatus status, const KadContact* contacts, unsigned qty)
 		: KadMsgRsp(KadMsg::KAD_MSG_FIND_RSP, msgId, nodeId, status)
 	{
-		X_ASSERT_LT(qty, 16, "%d");
+		X_ASSERT_LE(qty, KADEMLIA_BUCKET_SIZE, "%d");
 		memset(mContacts, 0, sizeof(mContacts));
 		for (unsigned i=0; i<qty; i++) {
 			mContacts[i]= KadMsgContact(contacts[i]);
@@ -114,11 +112,11 @@ const XLog::Stream& operator <<(const XLog::Stream& str, const KadMsgFindReq& v)
 inline
 const XLog::Stream& operator <<(const XLog::Stream& str, const KadMsgFindRsp& v)
 {
-	str << "KAD_MSG_FIND_RSP {";
+	int qty = 0;
 	for (int i=0; i<KADEMLIA_BUCKET_SIZE; i++) {
 		if (!v.mContacts[i].id.IsZero()) {
-			str << (KadContact)(v.mContacts[i]) << ", ";
+			qty++;
 		}
 	}
-	return str << "}";
+	return 	str << "KAD_MSG_FIND_RSP { " << qty << " }";
 }

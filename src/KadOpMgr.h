@@ -9,12 +9,25 @@
 #include <XTimer.h>
 #include <XLocks.h>
 #include <net/XSocketUdp.h>
+#include <XTimeCounter.h>
 
 #include "KadConfig.h"
 #include "KadRtNode.h"
 
 #include "operations/KadPing.h"
 #include "operations/KadFind.h"
+
+inline
+const XLog::Stream& operator <<(const XLog::Stream& str, const KadMsg& v)
+{
+	switch (v.MsgType()) {
+	case KadMsg::KAD_MSG_PING: return str << (const KadMsgPing&)v;
+	case KadMsg::KAD_MSG_PONG: return str << (const KadMsgPong&)v;
+	case KadMsg::KAD_MSG_FIND_REQ: return str << (const KadMsgFindReq&)v;
+	case KadMsg::KAD_MSG_FIND_RSP: return str << (const KadMsgFindRsp&)v;
+	default: return str << "KAD_MSG_UNKNOWN";
+	}
+}
 
 class KadOpMgr
 	: public XThread
@@ -31,7 +44,6 @@ public:
 		KadPing(KadOpMgr* mgr, const XSockAddr& addr, Handler h)
 			: KadOperation (mgr, mgr->GenId()), mAddr(addr), mHandler(h)
 		{
-			LOG(mMgr->mLog, "KadPing started");
 			mMgr->mTimers.SetTimer(XTimerContext::Handler(this, &KadPing::SendPing), 0, 200);
 			mMgr->mTimers.SetTimer(XTimerContext::Handler(this, &KadPing::Timeout), 1100);
 		}
@@ -46,8 +58,6 @@ public:
 		}
 
 		void Process(const KadMsgRsp* rsp) {
-			const KadMsgPong* msg = (const KadMsgPong*)rsp;
-			LOG(mMgr->mLog, "<< " << *msg);
 			Stop();
 			mHandler();
 		}
@@ -68,6 +78,29 @@ public:
 	class KadFind
 		: public KadOperation
 	{
+			class Contact
+				: public KadContact
+			{
+			public:
+				bool IsPending() const { return mState == PENDING; }
+				bool IsTimeout() const { return mState == PENDING && mTime.Elapsed() > KADEMLIA_TIMEOUT_RESPONCE-50; }
+				bool IsContacted() const { return mState == CONTACTED; }
+				bool IsNew() const { return mState == NEW && !IsStale(); }
+
+				void GotTimeout() { mFailQty += 1;	mState = NEW; }
+				void GotResponce() { mFailQty = 0;	mState = CONTACTED; }
+				void SentRequest() { mTime.Reset();	mState = PENDING; }
+
+				Contact (const KadContact& c)
+					: KadContact(c)
+					, mState(NEW)
+				{ }
+			private:
+				enum State {
+					NEW, PENDING, CONTACTED, STALE
+				} mState;
+				XTimeCounter mTime;
+			};
 	public:
 		typedef XDelegate< void () > Handler;
 
@@ -79,55 +112,121 @@ public:
 			KadContact contacts[KADEMLIA_BUCKET_SIZE];
 			int qty = mMgr->FindClosest(mKey, contacts, KADEMLIA_BUCKET_SIZE);
 			for (int i=0; i<qty; ++i) {
-				mShortlist.Append(contacts[i]);
+				contacts[i].mFailQty = 0;
+				Insert(Contact(contacts[i]));
 			}
-			Send();
+			for (int i=0; i<KADEMLIA_ALPHA; ++i) {
+				SendOne();
+			}
 		}
 
 		void Process(const KadMsgRsp* rsp) {
 			const KadMsgFindRsp* msg = (const KadMsgFindRsp*)rsp;
-			LOG(mMgr->mLog, "<< " << *msg);
+
+			{
+				XList<Contact>::It it = mList.First();
+				while (it!=mList.End()) {
+					if (mList[it].mId == rsp->NodeId()) {
+						mList[it].GotResponce();
+						break;
+					}
+					++it;
+				}
+				if (it == mList.End()) {
+					LOG_WARN(mMgr->mLog, "Response from unknown contact");
+				}
+			}
 
 			for (int i=0; i<KADEMLIA_BUCKET_SIZE; i++) {
-				if (!msg->mContacts[i].id.IsZero()) {
+				if (!msg->mContacts[i].id.IsZero() && msg->mContacts[i].id != mMgr->mLocalId) {
 					KadContact c = msg->mContacts[i];
 
 					if (mExact && c.mId == mKey) {
-						LOG(mMgr->mLog, "Found " << c.mId << " on " << c.mAddrExt.ToString());
+						LOG(mMgr->mLog, "Found " << c.mId << " on " << c.mAddr.ToString());
 					}
 
-					if (mContacted.End() == mContacted.FindAfter(mContacted.First(), c.mId)) {
-						if (mShortlist.End() == mShortlist.FindAfter(mShortlist.First(), c)) {
-							mShortlist.Append(c);
-						} else {
-							LOG(mMgr->mLog, "Skipping to add existing node " << c.mId);
-						}
-					} else {
-						LOG(mMgr->mLog, "Skipping to add contacted node " << c.mId);
-					}
+					Insert(Contact(c));
+
 				}
 			}
-			Send();
+			if (!SendOne()) {
+				Complete();
+			}
 		}
 
 	private:
-		void Send() {
-			for (XList<KadContact>::It it=mShortlist.First(); it!=mShortlist.End(); ++it) {
-				if (mContacted.End() == mContacted.FindAfter(mContacted.First(), mShortlist[it].mId)) {
-					mMgr->SendStructTo(KadMsgFindReq(mId, mMgr->mLocalId, mKey), mShortlist[it].mAddrExt);
-					mContacted.Append(mShortlist[it].mId);
-				} else {
-					LOG(mMgr->mLog, "Skipping contacted node " << mShortlist[it].mId);
+		void Insert(const Contact& c) {
+			if (mList.Count() == 0) {
+				mList.Append(c);
+				return;
+			}
+			if (mList.Count() > KADEMLIA_BUCKET_SIZE && mKey.Closer(mList.Back().mId, c.mId)) {
+				LOG(mMgr->mLog, "Skipping to add node (too far)" << c.mId);
+				return;
+			}
+
+			for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
+				if (c.mId == mList[it].mId) {
+					return;
+				} else if (mKey.Closer(c.mId, mList[it].mId)) {
+					mList.InsertBefore(it, c);
+					return;
 				}
 			}
+		}
+
+		void Cleanup() {
+			for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
+				if (mList[it].IsTimeout()) {
+					mList[it].GotTimeout();
+					LOG(mMgr->mLog, "Cleanup timeout");
+				}
+				if (mList[it].IsStale()) {
+					mList.Remove(it);
+					LOG(mMgr->mLog, "Cleanup removed");
+				}
+			}
+		}
+
+		bool SendOne() {
+			Cleanup();
+
+			for (unsigned stale=0; stale<KADEMLIA_STALE; stale++) {
+				for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
+					if (mList[it].IsNew() && stale == mList[it].mFailQty) {
+						mList[it].SentRequest();
+						mMgr->SendStructTo(KadMsgFindReq(mId, mMgr->mLocalId, mKey), mList[it].mAddr);
+
+						mMgr->mTimers.CancelTimer(XTimerContext::Handler(this, &KadFind::Timeout));
+						mMgr->mTimers.SetTimer(XTimerContext::Handler(this, &KadFind::Timeout), KADEMLIA_TIMEOUT_RESPONCE);
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		void Timeout() {
+			LOG(mMgr->mLog, "Timeout");
+			if (!SendOne()) {
+				Complete();
+			}
+		}
+
+		void Complete () {
+			mMgr->mTimers.CancelTimer(XTimerContext::Handler(this, &KadFind::Timeout));
+			LOG(mMgr->mLog, "Found " << mList.Count() << "nodes");
+
+			for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
+				LOG(mMgr->mLog, "   " << mList[it].mId << " -" << (mKey ^ mList[it].mId));
+			}
+			//if (mHandler) mHandler();
 		}
 
 		Handler mHandler;
 		KadKey mKey;
 		bool mExact;
-		XList<KadContact> mShortlist;
-		XList<KadNodeId> mContacted;
-		KadNodeId mClosest;
+		XList<Contact> mList;
 		XMutexRecursive mLock;
 	};
 
@@ -145,21 +244,25 @@ private:
 			if (len <= 0) continue;
 			if (IsStopping()) break;
 
+			if (RandRange(0,100) < DROP_RATE_RX) {
+				continue;
+			}
+
+			//LOG(mLog, "<< " << req);
+
 			Seen(KadContact(req.NodeId(), from));
 
 			switch (req.MsgType()) {
 			case KadMsg::KAD_MSG_PING: {
 				const KadMsgPing& req = (const KadMsgPing&)buffer;
-				LOG(mLog, "<< " << req);
 
 				SendStructTo(KadMsgPong(req.MsgId(), mLocalId), from);
 			} break;
 			case KadMsg::KAD_MSG_FIND_REQ: {
 				const KadMsgFindReq& req = (const KadMsgFindReq&)buffer;
-				LOG(mLog, "<< " << req);
 
 				KadContact contacts[KADEMLIA_BUCKET_SIZE];
-				int qty = FindClosest(req.FindId(), contacts, KADEMLIA_BUCKET_SIZE);
+				int qty = FindClosest(req.FindId(), contacts, KADEMLIA_BUCKET_SIZE, req.NodeId());
 				SendStructTo(KadMsgFindRsp(req.MsgId(), mLocalId, KadMsgRsp::KAD_MSG_STATUS_OK, contacts, qty), from);
 			} break;
 			case KadMsg::KAD_MSG_STORE_REQ: {
@@ -204,12 +307,16 @@ private:
 
 	template <typename T>
 	void SendStructTo(const T& s, const XSockAddr& addr) const {
-		LOG(mLog, ">> " << s);
-		//if (RandRange(0,100) < 90) { // TODO: Remove
+		LOG(mLog, ">>" << addr.ToString() << ":" << s);
+
+		if (RandRange(0,100) >= DROP_RATE_TX) { // TODO: Remove
 			mSocket.SendTo(&s, sizeof(s), addr);
-		//}
+		}
 	}
 public:
+
+	static int DROP_RATE_TX;
+	static int DROP_RATE_RX;
 
 	KadOpMgr(const KadNodeId& id, const XSockAddr& addr)
 		: XThread(addr.ToString())
@@ -217,8 +324,13 @@ public:
 		, mBindAddr (addr)
 		, mRoutingTable(new KadRtNode(0, KadNodeId::Zero()))
 	{
-		mSocket.Bind(addr);
-		LOG(mLog, "Bound to address " << mSocket.GetBindAddr().ToString());
+		if (mSocket.Bind(addr)) {
+			LOG(mLog, "Bound to address " << mBindAddr.ToString());
+		} else {
+			LOG_CRIT(mLog, "Could not bind to address " << mBindAddr.ToString());
+			return;
+		}
+
 		Start();
 	}
 
@@ -237,11 +349,12 @@ public:
 		mOps.Append(new KadFind(this, key, h));
 	}
 
-	void Join(const XList<KadContact>& bsp) {
+	void Join(const XList<KadContact>& bsp, bool init_only = false) {
 		// Fill local routing table with bootstrap peers
 		for (XList<KadContact>::It it = bsp.First(); it != bsp.End(); ++it) {
 			Seen(bsp[it]);
 		}
+		if (init_only) return;
 		// Perform a node lookup for your own LocalId
 		Find(mLocalId, NULL);
 	}
@@ -259,8 +372,8 @@ private:
 		mRoutingTable->AddNode(contact, contact.mId ^ mLocalId);
 	}
 
-	int FindClosest(const KadNodeId& id, KadContact* contacts, int qty) const {
-		return mRoutingTable->GatherClosest(id, id ^ mLocalId, contacts, qty);
+	int FindClosest(const KadNodeId& id, KadContact* contacts, int qty, const KadNodeId& except = KadNodeId::Zero()) const {
+		return mRoutingTable->GatherClosest(id, id ^ mLocalId, contacts, qty, except);
 	}
 
 	void DumpTable() const {
