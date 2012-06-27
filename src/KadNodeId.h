@@ -46,9 +46,8 @@ public:
 	static KadId FromHash(const void* data, size_t len);
 
 	static KadId Random() {
-		KadId result;
-		MemRand(result.mData, SIZE);
-		return result;
+		XString unique = XString::Format("%d-%d", RandRange(0, 10000), RandRange(0, 10000));
+		return KadId::FromHash((char*)unique, unique.Length());
 	}
 
 	static KadId Zero() {

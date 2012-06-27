@@ -82,19 +82,21 @@ public:
 				: public KadContact
 			{
 			public:
-				bool IsPending() const { return mState == PENDING; }
+				bool IsPending() const { return mState == PENDING && !IsTimeout(); }
 				bool IsTimeout() const { return mState == PENDING && mTime.Elapsed() > KADEMLIA_TIMEOUT_RESPONCE-50; }
 				bool IsContacted() const { return mState == CONTACTED; }
 				bool IsNew() const { return mState == NEW && !IsStale(); }
 
-				void GotTimeout() { mFailQty += 1;	mState = NEW; }
+				void GotTimeout() { mFailQty += 1;	mState = NEW; if (IsStale()) { LOG(NULL, "Stale"); } }
 				void GotResponce() { mFailQty = 0;	mState = CONTACTED; }
 				void SentRequest() { mTime.Reset();	mState = PENDING; }
 
 				Contact (const KadContact& c)
 					: KadContact(c)
 					, mState(NEW)
-				{ }
+				{
+					mFailQty = 0;
+				}
 			private:
 				enum State {
 					NEW, PENDING, CONTACTED, STALE
@@ -115,102 +117,119 @@ public:
 				contacts[i].mFailQty = 0;
 				Insert(Contact(contacts[i]));
 			}
-			for (int i=0; i<KADEMLIA_ALPHA; ++i) {
-				SendOne();
-			}
+			Send(KADEMLIA_ALPHA);
 		}
 
 		void Process(const KadMsgRsp* rsp) {
 			const KadMsgFindRsp* msg = (const KadMsgFindRsp*)rsp;
 
-			{
-				XList<Contact>::It it = mList.First();
-				while (it!=mList.End()) {
-					if (mList[it].mId == rsp->NodeId()) {
-						mList[it].GotResponce();
-						break;
-					}
-					++it;
-				}
-				if (it == mList.End()) {
-					LOG_WARN(mMgr->mLog, "Response from unknown contact");
+			mLock.Lock();
+			bool found = false;
+			for (XList<Contact>::It it = mList.First(); it!=mList.End(); ++it) {
+				if (mList[it].mId == rsp->NodeId()) {
+					mList[it].GotResponce();
+					found = true;
+					break;
 				}
 			}
+			if (!found) {
+				LOG_WARN(mMgr->mLog, "Response from unknown contact");
+				mLock.Unlock();
+				return;
+			}
 
+			int pendingQty = Cleanup();
+			int insertQty = 0;
 			for (int i=0; i<KADEMLIA_BUCKET_SIZE; i++) {
 				if (!msg->mContacts[i].id.IsZero() && msg->mContacts[i].id != mMgr->mLocalId) {
 					KadContact c = msg->mContacts[i];
-
-					if (mExact && c.mId == mKey) {
-						LOG(mMgr->mLog, "Found " << c.mId << " on " << c.mAddr.ToString());
+					if (Insert(Contact(c))) {
+						insertQty++;
 					}
-
-					Insert(Contact(c));
-
 				}
 			}
-			if (!SendOne()) {
+
+			if ((!pendingQty && !insertQty) /*|| !Send(KADEMLIA_ALPHA-pendingQty)*/) {
 				Complete();
 			}
+
+			mLock.Unlock();
 		}
 
 	private:
-		void Insert(const Contact& c) {
+		bool Insert(const Contact& c) {
 			if (mList.Count() == 0) {
 				mList.Append(c);
-				return;
+				return true;
 			}
 			if (mList.Count() > KADEMLIA_BUCKET_SIZE && mKey.Closer(mList.Back().mId, c.mId)) {
 				LOG(mMgr->mLog, "Skipping to add node (too far)" << c.mId);
-				return;
+				return false;
 			}
-
 			for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
 				if (c.mId == mList[it].mId) {
-					return;
+					return false;
 				} else if (mKey.Closer(c.mId, mList[it].mId)) {
 					mList.InsertBefore(it, c);
-					return;
-				}
-			}
-		}
-
-		void Cleanup() {
-			for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
-				if (mList[it].IsTimeout()) {
-					mList[it].GotTimeout();
-					LOG(mMgr->mLog, "Cleanup timeout");
-				}
-				if (mList[it].IsStale()) {
-					mList.Remove(it);
-					LOG(mMgr->mLog, "Cleanup removed");
-				}
-			}
-		}
-
-		bool SendOne() {
-			Cleanup();
-
-			for (unsigned stale=0; stale<KADEMLIA_STALE; stale++) {
-				for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
-					if (mList[it].IsNew() && stale == mList[it].mFailQty) {
-						mList[it].SentRequest();
-						mMgr->SendStructTo(KadMsgFindReq(mId, mMgr->mLocalId, mKey), mList[it].mAddr);
-
-						mMgr->mTimers.CancelTimer(XTimerContext::Handler(this, &KadFind::Timeout));
-						mMgr->mTimers.SetTimer(XTimerContext::Handler(this, &KadFind::Timeout), KADEMLIA_TIMEOUT_RESPONCE);
-						return true;
-					}
+					return true;
 				}
 			}
 			return false;
 		}
 
+		// Return qty of pending contacts
+		int Cleanup() {
+			int pending = 0;
+			int i = 0;
+			for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
+				if (mList[it].IsPending()) {
+					pending++;
+				} else if (mList[it].IsTimeout()) {
+					mList[it].GotTimeout();
+					LOG(mMgr->mLog, "Timeout:" << mList[it].mAddr.ToString());
+				}
+				if (mList[it].IsStale() || i >= KADEMLIA_BUCKET_SIZE) {
+					mList.Remove(it);
+					continue;
+				}
+				i++;
+			}
+
+			X_ASSERT_LE(mList.Count(), KADEMLIA_BUCKET_SIZE, "%d");
+			return pending;
+		}
+
+		int Send(int qty) {
+			int sent = 0;
+			for (int i=0; i<qty; i++) {
+				for (unsigned stale=0; stale<KADEMLIA_STALE; stale++) {
+					for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
+						if (mList[it].IsNew() && stale == mList[it].mFailQty) {
+							mList[it].SentRequest();
+							mMgr->SendStructTo(KadMsgFindReq(mId, mMgr->mLocalId, mKey), mList[it].mAddr);
+
+							mMgr->mTimers.CancelTimer(XTimerContext::Handler(this, &KadFind::Timeout));
+							mMgr->mTimers.SetTimer(XTimerContext::Handler(this, &KadFind::Timeout), KADEMLIA_TIMEOUT_RESPONCE);
+
+							sent++;
+							goto next_req;
+						}
+					}
+				}
+				next_req:;
+			}
+			LOG(mMgr->mLog, "Sent " << sent << " messages");
+			return sent;
+		}
+
 		void Timeout() {
 			LOG(mMgr->mLog, "Timeout");
-			if (!SendOne()) {
+			mLock.Lock();
+			int pendingQty = Cleanup();
+			if (!Send(KADEMLIA_ALPHA-pendingQty)) {
 				Complete();
 			}
+			mLock.Unlock();
 		}
 
 		void Complete () {
@@ -225,7 +244,6 @@ public:
 
 		Handler mHandler;
 		KadKey mKey;
-		bool mExact;
 		XList<Contact> mList;
 		XMutexRecursive mLock;
 	};

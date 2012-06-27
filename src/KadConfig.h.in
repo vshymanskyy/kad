@@ -8,7 +8,7 @@
 /**
  * Kademlia ID size
  **/
-#define KADEMLIA_ID_BITS 64
+#define KADEMLIA_ID_BITS 160
 #define KADEMLIA_ID_SIZE (KADEMLIA_ID_BITS/8)
 
 /**
@@ -43,12 +43,12 @@
  * If no reply received from a node in this period (ms)
  * consider the node unresponsive.
  **/
-#define KADEMLIA_TIMEOUT_RESPONCE 3000
+#define KADEMLIA_TIMEOUT_RESPONCE 1000
 
 /**
  * Timeout for performing an operation (ms)
  **/
-#define KADEMLIA_TIMEOUT_OPERATION 10000
+#define KADEMLIA_TIMEOUT_OPERATION 3000
 
 /**
  * Maximum number of concurrent messages in transit.
