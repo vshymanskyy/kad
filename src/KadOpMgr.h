@@ -59,7 +59,7 @@ public:
 
 		void Process(const KadMsgRsp* rsp) {
 			Stop();
-			mHandler();
+			if (mHandler) mHandler();
 		}
 	private:
 		void SendPing() {
@@ -123,6 +123,7 @@ public:
 		void Process(const KadMsgRsp* rsp) {
 			const KadMsgFindRsp* msg = (const KadMsgFindRsp*)rsp;
 
+			//LOG_WARN(mMgr->mLog, *msg);
 			mLock.Lock();
 			bool found = false;
 			for (XList<Contact>::It it = mList.First(); it!=mList.End(); ++it) {
@@ -149,38 +150,53 @@ public:
 				}
 			}
 
-			if ((!pendingQty && !insertQty) /*|| !Send(KADEMLIA_ALPHA-pendingQty)*/) {
+			//LOG(mMgr->mLog, FMT("%d pend, %d insert", pendingQty, insertQty));
+			if (insertQty) {
+				int sentQty = Send(KADEMLIA_ALPHA-pendingQty);
+				LOG(mMgr->mLog, FMT("%d sent", sentQty));
+			} else if (!pendingQty && !insertQty) {
 				Complete();
 			}
-
 			mLock.Unlock();
 		}
 
 	private:
 		bool Insert(const Contact& c) {
-			if (mList.Count() == 0) {
-				mList.Append(c);
-				return true;
-			}
-			if (mList.Count() > KADEMLIA_BUCKET_SIZE && mKey.Closer(mList.Back().mId, c.mId)) {
-				LOG(mMgr->mLog, "Skipping to add node (too far)" << c.mId);
-				return false;
-			}
-			for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
+			XList<Contact>::It it=mList.First();
+			for ( ;it!=mList.End(); ++it) {
 				if (c.mId == mList[it].mId) {
+					//LOG(mMgr->mLog, "Existing");
 					return false;
 				} else if (mKey.Closer(c.mId, mList[it].mId)) {
+					break;
+				}
+			}
+
+			if (it == mList.End()) {
+				if (mList.Count() < KADEMLIA_BUCKET_SIZE) {
+					//LOG(mMgr->mLog, "Append " << (c.mId^mKey));
+					mList.Append(c);
+					return true;
+				}
+			} else {
+				if (mList.Count() < KADEMLIA_BUCKET_SIZE) {
+					//LOG(mMgr->mLog, "Insert " << (c.mId^mKey));
 					mList.InsertBefore(it, c);
+					return true;
+				} else {
+					//LOG(mMgr->mLog, "Replace " << (mList.Back().mId^mKey) << " with" << (c.mId^mKey));
+					mList.InsertBefore(it, c);
+					mList.PopBack();
 					return true;
 				}
 			}
+			//LOG(mMgr->mLog, "Too far");
 			return false;
 		}
 
 		// Return qty of pending contacts
 		int Cleanup() {
 			int pending = 0;
-			int i = 0;
 			for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
 				if (mList[it].IsPending()) {
 					pending++;
@@ -188,11 +204,10 @@ public:
 					mList[it].GotTimeout();
 					LOG(mMgr->mLog, "Timeout:" << mList[it].mAddr.ToString());
 				}
-				if (mList[it].IsStale() || i >= KADEMLIA_BUCKET_SIZE) {
+				if (mList[it].IsStale()) {
 					mList.Remove(it);
 					continue;
 				}
-				i++;
 			}
 
 			X_ASSERT_LE(mList.Count(), KADEMLIA_BUCKET_SIZE, "%d");
@@ -218,7 +233,6 @@ public:
 				}
 				next_req:;
 			}
-			LOG(mMgr->mLog, "Sent " << sent << " messages");
 			return sent;
 		}
 
@@ -294,6 +308,7 @@ private:
 			case KadMsg::KAD_MSG_FIND_RSP:
 			case KadMsg::KAD_MSG_STORE_RSP:
 			case KadMsg::KAD_MSG_REMOVE_RSP: {
+				if (!req.MsgId()) break;
 				XList<KadOperation*>::It t = mOps.FindAfter(mOps.First(), KadOperation::SelectById(req.MsgId()));
 				if (t != mOps.End()) {
 					mOps[t]->Process((const KadMsgRsp*)buffer);
@@ -315,7 +330,7 @@ private:
 		KadMsgId id;
 		for (int gen = 0; gen < 100; gen++) {
 			MemRand(&id, sizeof(id));
-			if (mOps.End() == mOps.FindAfter(mOps.First(), KadOperation::SelectById(id))) {
+			if (0 != id && mOps.End() == mOps.FindAfter(mOps.First(), KadOperation::SelectById(id))) {
 				return id;
 			}
 		}
@@ -325,7 +340,7 @@ private:
 
 	template <typename T>
 	void SendStructTo(const T& s, const XSockAddr& addr) const {
-		LOG(mLog, ">>" << addr.ToString() << ":" << s);
+		//LOG(mLog, ">>" << addr.ToString() << ":" << s);
 
 		if (RandRange(0,100) >= DROP_RATE_TX) { // TODO: Remove
 			mSocket.SendTo(&s, sizeof(s), addr);
@@ -342,6 +357,7 @@ public:
 		, mBindAddr (addr)
 		, mRoutingTable(new KadRtNode(0, KadNodeId::Zero()))
 	{
+		//mLog.SetLevel(XLog::WARN);
 		if (mSocket.Bind(addr)) {
 			LOG(mLog, "Bound to address " << mBindAddr.ToString());
 		} else {
@@ -367,12 +383,18 @@ public:
 		mOps.Append(new KadFind(this, key, h));
 	}
 
-	void Join(const XList<KadContact>& bsp, bool init_only = false) {
-		// Fill local routing table with bootstrap peers
+	void Init(const XList<KadContact>& bsp) {
+		// Fill local routing table
 		for (XList<KadContact>::It it = bsp.First(); it != bsp.End(); ++it) {
 			Seen(bsp[it]);
 		}
-		if (init_only) return;
+	}
+
+	void Join(const XList<XSockAddr>& bsp) {
+		for (XList<XSockAddr>::It it = bsp.First(); it!=bsp.End(); ++it) {
+			SendStructTo(KadMsgPing(0, mLocalId), bsp[it]);
+		}
+		XThread::SleepMs(100);
 		// Perform a node lookup for your own LocalId
 		Find(mLocalId, NULL);
 	}

@@ -24,12 +24,12 @@ int GenerateCli(int argc, char* argv[])
 
 	if (!bspMgr) {
 		bspMgr = new KadOpMgr(BSP.mId, BSP.mAddr);
-		bspMgr->Join(contacts, true);
+		bspMgr->Init(contacts);
 	}
 
 	for (XList<KadContact>::It it=contacts.First(); it!=contacts.End(); ++it) {
 		KadOpMgr* mgr = new KadOpMgr(contacts[it].mId, contacts[it].mAddr);
-		mgr->Join(contacts, true);
+		mgr->Init(contacts);
 	}
 	return 0;
 }
@@ -42,7 +42,7 @@ int SimulateCli(int argc, char* argv[])
 	if (!bspMgr) {
 		bspMgr = new KadOpMgr(BSP.mId, BSP.mAddr);
 	}
-	XList<KadContact> bspList(BSP);
+	XList<XSockAddr> bspList(BSP.mAddr);
 	for (int i=0; i<qty; i++) {
 		KadOpMgr* mgr = new KadOpMgr(KadNodeId::Random(), XSockAddr(XString::Format("127.0.0.1:%d", GEN_PORT++)));
 		mgr->Join(bspList);
@@ -55,9 +55,14 @@ KadOpMgr* mgrNode;
 int JoinCli(int argc, char* argv[])
 {
 	if (mgrNode) return 1;
-
 	mgrNode = new KadOpMgr(KadNodeId::Random(), XSockAddr("127.0.0.1:2048"));
-	mgrNode->Join(XList<KadContact>(BSP));
+
+	if (argc == 2) {
+		mgrNode->Join(XList<XSockAddr>(XSockAddr(argv[1])));
+	} else {
+		mgrNode->Join(XList<XSockAddr>(XSockAddr("127.0.0.1:4096")));
+	}
+
 	return 0;
 }
 
