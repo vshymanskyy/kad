@@ -117,6 +117,9 @@ public:
 				contacts[i].mFailQty = 0;
 				Insert(Contact(contacts[i]));
 			}
+		}
+
+		void Start() {
 			Send(KADEMLIA_ALPHA);
 		}
 
@@ -134,7 +137,7 @@ public:
 				}
 			}
 			if (!found) {
-				LOG_WARN(mMgr->mLog, "Response from unknown contact");
+				//LOG_WARN(mMgr->mLog, "Response from unknown contact");
 				mLock.Unlock();
 				return;
 			}
@@ -150,7 +153,7 @@ public:
 				}
 			}
 
-			//LOG(mMgr->mLog, FMT("%d pend, %d insert", pendingQty, insertQty));
+			LOG(mMgr->mLog, FMT("%d pend, %d insert", pendingQty, insertQty));
 			if (insertQty) {
 				int sentQty = Send(KADEMLIA_ALPHA-pendingQty);
 				LOG(mMgr->mLog, FMT("%d sent", sentQty));
@@ -237,7 +240,6 @@ public:
 		}
 
 		void Timeout() {
-			LOG(mMgr->mLog, "Timeout");
 			mLock.Lock();
 			int pendingQty = Cleanup();
 			if (!Send(KADEMLIA_ALPHA-pendingQty)) {
@@ -380,7 +382,9 @@ public:
 
 
 	void Find(const KadKey& key, KadPing::Handler h) {
-		mOps.Append(new KadFind(this, key, h));
+		KadFind* op = new KadFind(this, key, h);
+		mOps.Append(op);
+		op->Start();
 	}
 
 	void Init(const XList<KadContact>& bsp) {
@@ -388,6 +392,15 @@ public:
 		for (XList<KadContact>::It it = bsp.First(); it != bsp.End(); ++it) {
 			Seen(bsp[it]);
 		}
+	}
+
+	void Join(const XList<KadContact>& bsp) {
+		for (XList<KadContact>::It it = bsp.First(); it!=bsp.End(); ++it) {
+			SendStructTo(KadMsgPing(0, mLocalId), bsp[it].mAddr);
+		}
+		XThread::SleepMs(10);
+		// Perform a node lookup for your own LocalId
+		Find(mLocalId, NULL);
 	}
 
 	void Join(const XList<XSockAddr>& bsp) {

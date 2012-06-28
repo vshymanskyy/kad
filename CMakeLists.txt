@@ -30,8 +30,8 @@ add_custom_command (
   COMMAND ${PROJECT_SOURCE_DIR}/cxxtest/bin/cxxtestgen -o ${CMAKE_BINARY_DIR}/test.cpp ${xplat_test} ${kad_test}
   )
 
-#add_executable(kad_test main_test.cpp ${CMAKE_BINARY_DIR}/test.cpp ${xplat_src} ${kad_src})
-#target_link_libraries (kad_test ${CMAKE_THREAD_LIBS_INIT} -ludt)
+add_executable(kad_test main_test.cpp ${CMAKE_BINARY_DIR}/test.cpp ${xplat_src} ${kad_src})
+target_link_libraries (kad_test ${CMAKE_THREAD_LIBS_INIT} -ludt)
 
 #add_executable(kad_bench main_bench.cpp ${CMAKE_BINARY_DIR}/test.cpp ${xplat_src} ${kad_src})
 #target_link_libraries (kad_bench ${CMAKE_THREAD_LIBS_INIT} -ludt)
