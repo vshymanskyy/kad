@@ -43,14 +43,22 @@ int SimulateCli(int argc, char* argv[])
 		return 1;
 	}
 
+	if (bspList.Count() == 0) {
+		printf("Need to generate some bootstrap contacts first.\n");
+		return 1;
+	}
+
 	int qty = (argc >= 2) ? atoi(argv[1]) : 10;
 	simBasePort = (argc >= 3) ? atoi(argv[2]) : simBasePort;
 
+	XList<XSockAddr> bspAddr;
+	for (XList<KadContact>::It it=bspList.First(); it!=bspList.End(); ++it) {
+		bspAddr.Append(bspList[it].mAddr);
+	}
 	// Join simulation nodes
 	for (int i=0; i<qty; i++) {
 		KadOpMgr* mgr = new KadOpMgr(KadNodeId::Random(), XSockAddr(XString::Format("127.0.0.1:%d", simBasePort++)));
-		mgr->Join(bspList);
-		XThread::SleepMs(100);
+		mgr->Join(bspAddr);
 	}
 
 	return 0;
@@ -113,6 +121,10 @@ int RemoveCli(int argc, char* argv[])
 
 int SetDropRateCli(int argc, char* argv[])
 {
+	if (argc <= 1) {
+		printf("Set global drop rate.\n  drop <rx=%d> <tx=%d>\n", KadOpMgr::DROP_RATE_RX, KadOpMgr::DROP_RATE_TX);
+		return 1;
+	}
 	if (argc >= 2) {
 		int qty = atoi(argv[1]);
 		KadOpMgr::DROP_RATE_RX = qty;
@@ -138,11 +150,11 @@ int main(int argc, char *argv[])
 	sh.RegisterCommand("j", &JoinCli);
 	sh.RegisterCommand("l", &LeaveCli);
 
-	sh.RegisterCommand("fn", &FindNodeCli);
-	sh.RegisterCommand("fv", &FindValueCli);
+	//sh.RegisterCommand("fn", &FindNodeCli);
+	//sh.RegisterCommand("fv", &FindValueCli);
 
-	sh.RegisterCommand("s", &StoreCli);
-	sh.RegisterCommand("rm", &RemoveCli);
+	//sh.RegisterCommand("s", &StoreCli);
+	//sh.RegisterCommand("rm", &RemoveCli);
 
 	sh.RegisterCommand("drop", &SetDropRateCli);
 

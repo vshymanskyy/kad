@@ -57,7 +57,7 @@ public:
 		{
 			XList<KadContact> bootstrap(KadContact(mgrBSP.LocalId(), mgrBSP.BindAddr()));
 
-			mgr1.Join(bootstrap);
+			//TODO: mgr1.Join(bootstrap);
 			//mgr2.Join(bootstrap);
 			//mgr3.Join(bootstrap);
 

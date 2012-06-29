@@ -28,14 +28,19 @@ find_package (Threads)
 add_custom_command (
   OUTPUT ${CMAKE_BINARY_DIR}/test.cpp
   COMMAND ${PROJECT_SOURCE_DIR}/cxxtest/bin/cxxtestgen -o ${CMAKE_BINARY_DIR}/test.cpp ${xplat_test} ${kad_test}
-  )
+)
+  
+add_library (xplat ${xplat_src})
+target_link_libraries (xplat ${CMAKE_THREAD_LIBS_INIT})
 
-add_executable(kad_test main_test.cpp ${CMAKE_BINARY_DIR}/test.cpp ${xplat_src} ${kad_src})
-target_link_libraries (kad_test ${CMAKE_THREAD_LIBS_INIT} -ludt)
+add_library (kad ${kad_src})
+target_link_libraries (kad xplat -ludt) 
 
-#add_executable(kad_bench main_bench.cpp ${CMAKE_BINARY_DIR}/test.cpp ${xplat_src} ${kad_src})
-#target_link_libraries (kad_bench ${CMAKE_THREAD_LIBS_INIT} -ludt)
+add_executable(kad_test main_test.cpp ${CMAKE_BINARY_DIR}/test.cpp)
+target_link_libraries (kad_test kad) 
 
-add_executable(kad_sim main_sim.cpp ${xplat_src} ${kad_src})
-target_link_libraries (kad_sim ${CMAKE_THREAD_LIBS_INIT} -ludt)
+add_executable(kad_bench main_bench.cpp ${CMAKE_BINARY_DIR}/test.cpp)
+target_link_libraries (kad_bench kad)
 
+add_executable(kad_sim main_sim.cpp)
+target_link_libraries (kad_sim ${CMAKE_THREAD_LIBS_INIT} xplat kad -ludt)
