@@ -55,7 +55,7 @@ public:
 			//, mgr2(KadNodeId::Random(), XSockAddr("127.0.0.1:3002"))
 			//, mgr3(KadNodeId::Random(), XSockAddr("127.0.0.1:3003"))
 		{
-			XList<KadContact> bootstrap(KadContact(mgrBSP.LocalId(), mgrBSP.BindAddr()));
+			XList<KadContact> bootstrap(KadContact(mgrBSP.LocalId(), mgrBSP.BindAddr()), 1);
 
 			//TODO: mgr1.Join(bootstrap);
 			//mgr2.Join(bootstrap);

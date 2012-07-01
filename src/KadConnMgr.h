@@ -1,6 +1,7 @@
 #ifndef KADCONNMGR_H_
 #define KADCONNMGR_H_
 
+#include <net/XSockAddr.h>
 #include <udt/udt.h>
 #include <XThread.h>
 

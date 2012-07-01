@@ -1,7 +1,7 @@
 #include "KadConnMgr.h"
 #include <cxxtest/TestSuite.h>
 
-class KadConnMgrTS//: public CxxTest::TestSuite
+class KadConnMgrTS: public CxxTest::TestSuite
 {
 public:
 

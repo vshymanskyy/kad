@@ -76,7 +76,7 @@ int JoinCli(int argc, char* argv[])
 	}
 
 	mgrNode = new KadOpMgr(KadNodeId::Random(), XSockAddr("127.0.0.1:2048"));
-	mgrNode->Join(XList<XSockAddr>(XSockAddr(argv[1])));
+	mgrNode->Join(XList<XSockAddr>(XSockAddr(argv[1]), 1));
 
 	return 0;
 }
