@@ -14,7 +14,7 @@ int simBasePort = 5000;
 
 XList<KadContact> bspList;
 
-int GenerateCli(int argc, char* argv[])
+int GenBspCli(int argc, char* argv[])
 {
 	if (argc < 2) {
 		printf("Generates bootstrap contacts.\n  gen <qty> <port=%d>\n", bspBasePort);
@@ -33,6 +33,24 @@ int GenerateCli(int argc, char* argv[])
 		KadOpMgr* mgr = new KadOpMgr(bspList[it].mId, bspList[it].mAddr);
 		mgr->Init(bspList);
 	}
+	return 0;
+}
+
+int AddBspCli(int argc, char* argv[])
+{
+	if (argc < 2) {
+		printf("Adds bootstrap contacts.\n  add <qty> <port=%d>\n", bspBasePort);
+		return 1;
+	}
+
+	int qty = (argc >= 2) ? atoi(argv[1]) : 10;
+	bspBasePort = (argc >= 3) ? atoi(argv[2]) : bspBasePort;
+
+	XList<KadContact>::It it=bspList.Last();
+	for (int i=0; i<qty; i++) {
+		bspList.Append(KadContact(KadNodeId::Random(), XSockAddr(XString::Format("127.0.0.1:%d", bspBasePort++))));
+	}
+
 	return 0;
 }
 
@@ -75,7 +93,7 @@ int JoinCli(int argc, char* argv[])
 		return 1;
 	}
 
-	mgrNode = new KadOpMgr(KadNodeId::Random(), XSockAddr("127.0.0.1:2048"));
+	mgrNode = new KadOpMgr(KadNodeId::Random(), XSockAddr("0.0.0.0"));
 	mgrNode->Join(XList<XSockAddr>(XSockAddr(argv[1]), 1));
 
 	return 0;
@@ -145,7 +163,8 @@ int main(int argc, char *argv[])
 	XShell sh("sim");
 
 	sh.RegisterCommand("sim", &SimulateCli);
-	sh.RegisterCommand("gen", &GenerateCli);
+	sh.RegisterCommand("gen", &GenBspCli);
+	sh.RegisterCommand("add", &AddBspCli);
 
 	sh.RegisterCommand("j", &JoinCli);
 	sh.RegisterCommand("l", &LeaveCli);

@@ -24,7 +24,7 @@ file(GLOB_RECURSE kad_tests ${PROJECT_SOURCE_DIR}/src/test/*.h)
 
 add_custom_command (
 	OUTPUT ${CMAKE_BINARY_DIR}/kad_test.cpp
-	COMMAND python ${PROJECT_SOURCE_DIR}/cxxtest/bin/cxxtestgen --xunit-printer -o ${CMAKE_BINARY_DIR}/kad_test.cpp ${kad_tests}
+	COMMAND python -B ${PROJECT_SOURCE_DIR}/cxxtest/bin/cxxtestgen --xunit-printer -o ${CMAKE_BINARY_DIR}/kad_test.cpp ${kad_tests}
 )
 
 add_subdirectory (udt4)

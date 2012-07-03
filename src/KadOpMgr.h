@@ -113,11 +113,9 @@ public:
 			, mKey(key)
 			, mCompleted(false)
 		{
-			KadContact contacts[KADEMLIA_BUCKET_SIZE];
-			int qty = mMgr->FindClosest(mKey, contacts, KADEMLIA_BUCKET_SIZE);
-			for (int i=0; i<qty; ++i) {
-				contacts[i].mFailQty = 0;
-				Insert(Contact(contacts[i]));
+			XList<const KadContact*> lst = mMgr->FindClosest(mKey, KADEMLIA_BUCKET_SIZE);
+			for (XList<const KadContact*>::It it=lst.First(); it!=lst.End(); ++it) {
+				Insert(Contact(*lst[it]));
 			}
 		}
 
@@ -264,6 +262,10 @@ public:
 
 			LOG(mMgr->mLog, "Found " << mList.Count() << "nodes");
 
+			for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
+				LOG(mMgr->mLog, "    " << (mList[it].mId ^ mKey));
+			}
+
 			if (mHandler) {
 				mHandler(mList);
 			}
@@ -289,8 +291,9 @@ private:
 			if (len <= 0) continue;
 			if (IsStopping()) break;
 
-
-			XThread::SleepMs(RandRange(0,KADEMLIA_TIMEOUT_RESPONCE/3));
+			if (DELAY_RX) {
+				XThread::SleepMs(RandRange(0,DELAY_RX));
+			}
 
 			LOG_DEEP(mLog, "<< " << req);
 
@@ -300,18 +303,21 @@ private:
 				SendStructTo(KadMsgPong(req.MsgId(), mLocalId), from);
 
 				mLock.Lock();
-				Seen(KadContact(req.NodeId(), from));
+				AddNode(KadContact(req.NodeId(), from));
 				mLock.Unlock();
 			} break;
 			case KadMsg::KAD_MSG_FIND_REQ: {
 				const KadMsgFindReq& req = (const KadMsgFindReq&)buffer;
-				KadContact contacts[KADEMLIA_BUCKET_SIZE];
 				mLock.Lock();
-				Seen(KadContact(req.NodeId(), from));
-				int qty = FindClosest(req.FindId(), contacts, KADEMLIA_BUCKET_SIZE, req.NodeId());
+				AddNode(KadContact(req.NodeId(), from));
+
+				XList<const KadContact*> lst = FindClosest(req.FindId(), KADEMLIA_BUCKET_SIZE);
+
+				// TODO: Remove the originating id
+
+				SendStructTo(KadMsgFindRsp(req.MsgId(), mLocalId, KadMsgRsp::KAD_MSG_STATUS_OK, lst), from);
 				mLock.Unlock();
 
-				SendStructTo(KadMsgFindRsp(req.MsgId(), mLocalId, KadMsgRsp::KAD_MSG_STATUS_OK, contacts, qty), from);
 			} break;
 			case KadMsg::KAD_MSG_STORE_REQ: {
 
@@ -325,7 +331,7 @@ private:
 			case KadMsg::KAD_MSG_STORE_RSP:
 			case KadMsg::KAD_MSG_REMOVE_RSP: {
 				mLock.Lock();
-				Seen(KadContact(req.NodeId(), from));
+				AddNode(KadContact(req.NodeId(), from));
 				if (!req.MsgId()) {
 					mLock.Unlock();
 					break;
@@ -371,16 +377,16 @@ public:
 
 	static int DROP_RATE_TX;
 	static int DROP_RATE_RX;
+	static int DELAY_RX;
 
 	KadOpMgr(const KadNodeId& id, const XSockAddr& addr)
 		: XThread(addr.ToString())
 		, mLocalId (id)
-		, mBindAddr (addr)
-		, mRoutingTable(0, KadNodeId::Zero())
 		//, mConnections()
 	{
 		//mLog.SetLevel(XLog::WARN);
 		if (mSocket.Bind(addr)) {
+			mBindAddr = mSocket.GetBindAddr();
 			LOG(mLog, "Bound to address " << mBindAddr.ToString());
 		} else {
 			LOG_CRIT(mLog, "Could not bind to address " << mBindAddr.ToString());
@@ -412,7 +418,7 @@ public:
 	void Init(const XList<KadContact>& bsp) {
 		// Fill local routing table
 		for (XList<KadContact>::It it = bsp.First(); it != bsp.End(); ++it) {
-			Seen(bsp[it]);
+			AddNode(bsp[it]);
 		}
 	}
 
@@ -431,21 +437,26 @@ public:
 		Find(mLocalId, NULL);
 	}
 
-	XList<KadContact> Leave() {
+	XList<const KadContact*> Leave() const {
 		return mRoutingTable.GetContacts();
 	}
 
 private:
-	void Ping(const XSockAddr& address, KadPing::Handler h) {
-		mOps.Append(new KadPing(this, address, h));
-	}
 
-	void Seen(const KadContact& contact) {
+	void AddNode(const KadContact& contact) {
 		mRoutingTable.AddNode(contact, contact.mId ^ mLocalId);
 	}
 
-	int FindClosest(const KadNodeId& id, KadContact* contacts, int qty, const KadNodeId& except = KadNodeId::Zero()) const {
-		return mRoutingTable.GatherClosest(id, id ^ mLocalId, contacts, qty, except);
+	void RemoveNode(const KadContact& contact) {
+		mRoutingTable.RemoveNode(contact.mId, contact.mId ^ mLocalId);
+	}
+
+	XList<const KadContact*> FindClosest(const KadNodeId& id, int qty) const {
+		return mRoutingTable.FindClosest(id, id ^ mLocalId, qty);
+	}
+
+	void Ping(const XSockAddr& address, KadPing::Handler h) {
+		mOps.Append(new KadPing(this, address, h));
 	}
 
 	void DumpTable() const {

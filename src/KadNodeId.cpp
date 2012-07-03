@@ -36,3 +36,18 @@ KadId<8> KadId<8>::FromHash(const void* data, size_t len)
 	sha.Finalize(u.buff);
 	return u.res[0] ^ u.res[1] ^ u.res[2] ^ u.res[3];
 }
+
+template<>
+KadId<1> KadId<1>::FromHash(const void* data, size_t len)
+{
+	union {
+		struct {
+			KadId res[4];
+		};
+		uint8_t buff[32];
+	} u;
+	SHA1 sha;
+	sha.Update(data, len);
+	sha.Finalize(u.buff);
+	return u.res[0];
+}

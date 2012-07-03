@@ -88,14 +88,17 @@ class KadMsgFindRsp : public KadMsgRsp
 {
 
 public:
-	KadMsgFindRsp(KadMsgId msgId, const KadNodeId& nodeId, KadMsgStatus status, const KadContact* contacts, unsigned qty)
+	KadMsgFindRsp(KadMsgId msgId, const KadNodeId& nodeId, KadMsgStatus status, XList<const KadContact*> &lst)
 		: KadMsgRsp(KadMsg::KAD_MSG_FIND_RSP, msgId, nodeId, status)
 	{
-		X_ASSERT_LE(qty, KADEMLIA_BUCKET_SIZE, "%d");
+		X_ASSERT_LE(lst.Count(), KADEMLIA_BUCKET_SIZE, "%d");
 		memset(mContacts, 0, sizeof(mContacts));
-		for (unsigned i=0; i<qty; i++) {
-			mContacts[i]= KadMsgContact(contacts[i]);
+
+		unsigned i=0;
+		for (XList<const KadContact*>::It it=lst.First(); it!=lst.End(); ++it) {
+			mContacts[i++]= KadMsgContact(*lst[it]);
 		}
+
 	}
 
 //private:
