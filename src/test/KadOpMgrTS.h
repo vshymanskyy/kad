@@ -23,8 +23,8 @@ public:
 	class PingTester {
 	public:
 		PingTester()
-			: mgr1(KadNodeId::Random(), XSockAddr("127.0.0.1:3001"))
-			, mgr2(KadNodeId::Random(), XSockAddr("127.0.0.1:3002"))
+			: mgr1(KadId::Random(), XSockAddr("127.0.0.1:3001"))
+			, mgr2(KadId::Random(), XSockAddr("127.0.0.1:3002"))
 		{
 
 		}
@@ -50,8 +50,8 @@ public:
 	class JoinTester {
 	public:
 		JoinTester()
-			: mgrBSP(KadNodeId::Random(), XSockAddr("127.0.0.1:3000"))
-			, mgr1(KadNodeId::Random(), XSockAddr("127.0.0.1:3001"))
+			: mgrBSP(KadId::Random(), XSockAddr("127.0.0.1:3000"))
+			, mgr1(KadId::Random(), XSockAddr("127.0.0.1:3001"))
 			//, mgr2(KadNodeId::Random(), XSockAddr("127.0.0.1:3002"))
 			//, mgr3(KadNodeId::Random(), XSockAddr("127.0.0.1:3003"))
 		{

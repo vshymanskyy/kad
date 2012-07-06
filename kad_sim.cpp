@@ -14,6 +14,7 @@ int simBasePort = 5000;
 
 XList<KadContact> bspList;
 
+static
 int GenBspCli(int argc, char* argv[])
 {
 	if (argc < 2) {
@@ -26,16 +27,18 @@ int GenBspCli(int argc, char* argv[])
 
 	XList<KadContact>::It it=bspList.Last();
 	for (int i=0; i<qty; i++) {
-		bspList.Append(KadContact(KadNodeId::Random(), XSockAddr(XString::Format("127.0.0.1:%d", bspBasePort++))));
+		bspList.Append(KadContact(KadId::Random(), XSockAddr(XString::Format("127.0.0.1:%d", bspBasePort++))));
 	}
 
 	for (++it; it!=bspList.End(); ++it) {
 		KadOpMgr* mgr = new KadOpMgr(bspList[it].mId, bspList[it].mAddr);
 		mgr->Init(bspList);
+		//mgr->DumpTable();
 	}
 	return 0;
 }
 
+static
 int AddBspCli(int argc, char* argv[])
 {
 	if (argc < 2) {
@@ -48,12 +51,13 @@ int AddBspCli(int argc, char* argv[])
 
 	XList<KadContact>::It it=bspList.Last();
 	for (int i=0; i<qty; i++) {
-		bspList.Append(KadContact(KadNodeId::Random(), XSockAddr(XString::Format("127.0.0.1:%d", bspBasePort++))));
+		bspList.Append(KadContact(KadId::Random(), XSockAddr(XString::Format("127.0.0.1:%d", bspBasePort++))));
 	}
 
 	return 0;
 }
 
+static
 int SimulateCli(int argc, char* argv[])
 {
 	if (argc < 2) {
@@ -75,7 +79,7 @@ int SimulateCli(int argc, char* argv[])
 	}
 	// Join simulation nodes
 	for (int i=0; i<qty; i++) {
-		KadOpMgr* mgr = new KadOpMgr(KadNodeId::Random(), XSockAddr(XString::Format("127.0.0.1:%d", simBasePort++)));
+		KadOpMgr* mgr = new KadOpMgr(KadId::Random(), XSockAddr(XString::Format("127.0.0.1:%d", simBasePort++)));
 		mgr->Join(bspAddr);
 	}
 
@@ -84,6 +88,7 @@ int SimulateCli(int argc, char* argv[])
 
 KadOpMgr* mgrNode;
 
+static
 int JoinCli(int argc, char* argv[])
 {
 	if (mgrNode) return 1;
@@ -93,12 +98,15 @@ int JoinCli(int argc, char* argv[])
 		return 1;
 	}
 
-	mgrNode = new KadOpMgr(KadNodeId::Random(), XSockAddr("0.0.0.0"));
-	mgrNode->Join(XList<XSockAddr>(XSockAddr(argv[1]), 1));
+	mgrNode = new KadOpMgr(KadId::Random(), XSockAddr("0.0.0.0"));
+	XList<XSockAddr> bspList;
+	bspList.Append(XSockAddr(argv[1]));
+	mgrNode->Join(bspList);
 
 	return 0;
 }
 
+static
 int LeaveCli(int argc, char* argv[])
 {
 	if (!mgrNode) return 1;
@@ -109,6 +117,17 @@ int LeaveCli(int argc, char* argv[])
 	return 0;
 }
 
+static
+int PrintRt(int argc, char* argv[])
+{
+	if (!mgrNode) return 1;
+
+	mgrNode->DumpTable();
+	return 0;
+}
+
+
+static
 int FindNodeCli(int argc, char* argv[])
 {
 	if (!mgrNode) return 1;
@@ -116,6 +135,7 @@ int FindNodeCli(int argc, char* argv[])
 	return 0;
 }
 
+static
 int FindValueCli(int argc, char* argv[])
 {
 	if (!mgrNode) return 1;
@@ -123,6 +143,7 @@ int FindValueCli(int argc, char* argv[])
 	return 0;
 }
 
+static
 int StoreCli(int argc, char* argv[])
 {
 	if (!mgrNode) return 1;
@@ -130,6 +151,7 @@ int StoreCli(int argc, char* argv[])
 	return 0;
 }
 
+static
 int RemoveCli(int argc, char* argv[])
 {
 	if (!mgrNode) return 1;
@@ -137,6 +159,7 @@ int RemoveCli(int argc, char* argv[])
 	return 0;
 }
 
+static
 int SetDropRateCli(int argc, char* argv[])
 {
 	if (argc <= 1) {
@@ -160,6 +183,8 @@ int main(int argc, char *argv[])
 {
 	RandInit();
 
+	XLogManager::Get().SetDefaultLogger(new XFileLogger("log.txt"));
+
 	XShell sh("sim");
 
 	sh.RegisterCommand("sim", &SimulateCli);
@@ -168,6 +193,8 @@ int main(int argc, char *argv[])
 
 	sh.RegisterCommand("j", &JoinCli);
 	sh.RegisterCommand("l", &LeaveCli);
+
+	sh.RegisterCommand("rt", &PrintRt);
 
 	//sh.RegisterCommand("fn", &FindNodeCli);
 	//sh.RegisterCommand("fv", &FindValueCli);

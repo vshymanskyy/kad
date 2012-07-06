@@ -12,15 +12,14 @@
 #include "XLog.h"
 
 template <unsigned SIZE>
-class KadId
+class TKadId
 {
-
 	/*****************************************************************
 	 * Generators
 	 *****************************************************************/
 public:
-	static KadId FromHex(const char* hexStr) {
-		KadId result;
+	static TKadId FromHex(const char* hexStr) {
+		TKadId result;
 		memset(result.mData, 0, SIZE);
 		const char* strBuff = hexStr+strlen(hexStr);
 
@@ -43,21 +42,21 @@ public:
 		return result;
 	}
 
-	static KadId FromHash(const void* data, size_t len);
+	static TKadId FromHash(const void* data, size_t len);
 
-	static KadId Random() {
+	static TKadId Random() {
 		XString unique = XString::Format("%d-%d", RandRange(0, 10000), RandRange(0, 10000));
-		return KadId::FromHash((char*)unique, unique.Length());
+		return TKadId::FromHash((char*)unique, unique.Length());
 	}
 
-	static KadId Zero() {
-		KadId result;
+	static TKadId Zero() {
+		TKadId result;
 		memset(result.mData, 0, SIZE);
 		return result;
 	}
 
-	static KadId PowerOfTwo(int power) {
-		KadId result;
+	static TKadId PowerOfTwo(int power) {
+		TKadId result;
 		memset(result.mData, 0, SIZE);
 		result.SetBit(SIZE*8 - 1 - power);
 		return result;
@@ -67,78 +66,78 @@ public:
 	 * Operators
 	 *****************************************************************/
 public:
-	bool operator ==(const KadId &id) const
+	bool operator ==(const TKadId &id) const
 	{
 		return memcmp(mData, id.mData, sizeof(mData)) == 0;
 	}
-	bool operator !=(const KadId &id) const
+	bool operator !=(const TKadId &id) const
 	{
 		return memcmp(mData, id.mData, sizeof(mData)) != 0;
 	}
-	bool operator >=(const KadId &id) const
+	bool operator >=(const TKadId &id) const
 	{
 		return memcmp(mData, id.mData, sizeof(mData)) >= 0;
 	}
-	bool operator <=(const KadId &id) const
+	bool operator <=(const TKadId &id) const
 	{
 		return memcmp(mData, id.mData, sizeof(mData)) <= 0;
 	}
-	bool operator >(const KadId &id) const
+	bool operator >(const TKadId &id) const
 	{
 		return memcmp(mData, id.mData, sizeof(mData)) > 0;
 	}
-	bool operator <(const KadId &id) const
+	bool operator <(const TKadId &id) const
 	{
 		return memcmp(mData, id.mData, sizeof(mData)) < 0;
 	}
 
-	KadId& operator ^=(const KadId &id) {
+	TKadId& operator ^=(const TKadId &id) {
 		for (unsigned i = 0; i < sizeof(mData); i++) {
 			mData[i] ^= id.mData[i];
 		}
 		return *this;
 	}
 
-	KadId& operator |=(const KadId &id) {
+	TKadId& operator |=(const TKadId &id) {
 		for (unsigned i = 0; i < sizeof(mData); i++) {
 			mData[i] |= id.mData[i];
 		}
 		return *this;
 	}
 
-	KadId& operator &=(const KadId &id) {
+	TKadId& operator &=(const TKadId &id) {
 		for (unsigned i = 0; i < sizeof(mData); i++) {
 			mData[i] &= id.mData[i];
 		}
 		return *this;
 	}
 
-	KadId operator ^(const KadId &id) const {
-		KadId result;
+	TKadId operator ^(const TKadId &id) const {
+		TKadId result;
 		for (unsigned i = 0; i < sizeof(mData); i++) {
 			result.mData[i] = mData[i] ^ id.mData[i];
 		}
 		return result;
 	}
 
-	KadId operator |(const KadId &id) const {
-		KadId result;
+	TKadId operator |(const TKadId &id) const {
+		TKadId result;
 		for (unsigned i = 0; i < sizeof(mData); i++) {
 			result.mData[i] = mData[i] | id.mData[i];
 		}
 		return result;
 	}
 
-	KadId operator &(const KadId &id) const {
-		KadId result;
+	TKadId operator &(const TKadId &id) const {
+		TKadId result;
 		for (unsigned i = 0; i < sizeof(mData); i++) {
 			result.mData[i] = mData[i] & id.mData[i];
 		}
 		return result;
 	}
 
-	KadId operator ~() const {
-		KadId result;
+	TKadId operator ~() const {
+		TKadId result;
 		for (unsigned i = 0; i < sizeof(mData); i++) {
 			result.mData[i] = ~mData[i];
 		}
@@ -148,7 +147,7 @@ public:
 	/*****************************************************************
 	 * Methods
 	 *****************************************************************/
-	KadId& ShiftLeft() {
+	TKadId& ShiftLeft() {
 		uint8_t* byte = mData;
 		for (int size = sizeof(mData); size--; ++byte) {
 			unsigned char bit = 0;
@@ -168,7 +167,7 @@ public:
 		return ((mData[i] >> shift) & 1);
 	}
 
-	KadId& SetBit(unsigned bit, bool val = true) {
+	TKadId& SetBit(unsigned bit, bool val = true) {
 		assert(bit < sizeof(mData)*8);
 		const int i = bit / 8;
 		const int shift = 7 - (bit % 8);
@@ -179,7 +178,7 @@ public:
 		return *this;
 	}
 
-	KadId& SwapBit(unsigned bit) {
+	TKadId& SwapBit(unsigned bit) {
 		assert(bit < sizeof(mData)*8);
 		int i = bit / 8;
 		int shift = 7 - (bit % 8);
@@ -202,7 +201,7 @@ public:
 
 	// returns n in: 2^n <= distance(n1, n2) < 2^(n+1)
 	// useful for finding out which bucket a node belongs to
-	unsigned DistanceTo(const KadId& id) const {
+	unsigned DistanceTo(const TKadId& id) const {
 		for (unsigned i = 0; i < sizeof(mData); ++i) {
 			if (const uint8_t t = mData[i] ^ id.mData[i]) {
 				// Found non-matching byte, find exact bit
@@ -219,7 +218,7 @@ public:
 	}
 
 	// my.Closer(toA than toB)
-	bool Closer(const KadId& to, const KadId& than) const
+	bool Closer(const TKadId& to, const TKadId& than) const
 	{
 		return ((*this) ^ to) < ((*this) ^ than);
 	}
@@ -234,14 +233,9 @@ private:
 	uint8_t mData[SIZE];
 } GCC_SPECIFIC(__attribute__((packed)));
 
-
-typedef KadId<KADEMLIA_ID_SIZE> KadNodeId;
-typedef KadId<KADEMLIA_ID_SIZE> KadKey;
-typedef KadId<KADEMLIA_ID_SIZE> KadDistance;
-
 template <unsigned SIZE>
 inline
-const XLog::Stream& operator <<(const XLog::Stream& str, const KadId<SIZE>& v)
+const XLog::Stream& operator <<(const XLog::Stream& str, const TKadId<SIZE>& v)
 {
 
 #ifdef KADEMLIA_DBG_BIN_ID
@@ -255,4 +249,7 @@ const XLog::Stream& operator <<(const XLog::Stream& str, const KadId<SIZE>& v)
 #endif
 	return str;
 }
+
+typedef TKadId<KADEMLIA_ID_SIZE> KadId;
+
 #endif /* NODEID_H_ */

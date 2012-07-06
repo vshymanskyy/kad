@@ -4,7 +4,7 @@
 class KadMsgPing : public KadMsg
 {
 public:
-	KadMsgPing(KadMsgId msgId, const KadNodeId& nodeId)
+	KadMsgPing(KadMsgId msgId, const KadId& nodeId)
 		: KadMsg(KadMsg::KAD_MSG_PING, msgId, nodeId)
 	{}
 
@@ -14,7 +14,7 @@ class KadMsgPong : public KadMsgRsp
 {
 
 public:
-	KadMsgPong(KadMsgId msgId, const KadNodeId& nodeId)
+	KadMsgPong(KadMsgId msgId, const KadId& nodeId)
 		: KadMsgRsp(KadMsg::KAD_MSG_PONG, msgId, nodeId, KadMsgRsp::KAD_MSG_STATUS_OK)
 	{
 	}

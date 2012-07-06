@@ -107,7 +107,7 @@ public:
 	public:
 		typedef XDelegate< void (XList<Contact>&) > Handler;
 
-		KadFind(KadOpMgr* mgr, const KadKey& key, Handler h)
+		KadFind(KadOpMgr* mgr, const KadId& key, Handler h)
 			: KadOperation (mgr, mgr->GenId())
 			, mHandler(h)
 			, mKey(key)
@@ -272,7 +272,7 @@ public:
 		}
 
 		Handler mHandler;
-		KadKey mKey;
+		KadId mKey;
 		bool mCompleted;
 		XList<Contact> mList;
 	};
@@ -367,7 +367,7 @@ private:
 
 	template <typename T>
 	void SendStructTo(const T& s, const XSockAddr& addr) const {
-		LOG_DEEP(mLog, ">>" << addr.ToString() << ":" << s);
+		LOG(mLog, ">>" << addr.ToString() << ":" << s);
 
 		if (RandRange(0,100) >= DROP_RATE_TX) { // TODO: Remove
 			mSocket.SendTo(&s, sizeof(s), addr);
@@ -379,10 +379,9 @@ public:
 	static int DROP_RATE_RX;
 	static int DELAY_RX;
 
-	KadOpMgr(const KadNodeId& id, const XSockAddr& addr)
+	KadOpMgr(const KadId& id, const XSockAddr& addr)
 		: XThread(addr.ToString())
 		, mLocalId (id)
-		//, mConnections()
 	{
 		//mLog.SetLevel(XLog::WARN);
 		if (mSocket.Bind(addr)) {
@@ -402,11 +401,11 @@ public:
 		XThread::Wait();
 	}
 
-	const KadNodeId& LocalId() const { return mLocalId; }
+	const KadId& LocalId() const { return mLocalId; }
 	const XSockAddr& BindAddr() const { return mBindAddr; }
 
 
-	void Find(const KadKey& key, KadFind::Handler h) {
+	void Find(const KadId& key, KadFind::Handler h) {
 		mLock.Lock();
 
 		KadFind* op = new KadFind(this, key, h);
@@ -429,7 +428,7 @@ public:
 	}
 
 	void Join(const XList<XSockAddr>& bsp) {
-		for (XList<XSockAddr>::It it = bsp.First(); it!=bsp.End(); ++it) {
+		for (XList<XSockAddr>::It it = bsp.First(); it != bsp.End(); ++it) {
 			SendStructTo(KadMsgPing(0, mLocalId), bsp[it]);
 		}
 		XThread::SleepMs(KADEMLIA_TIMEOUT_RESPONCE);
@@ -451,7 +450,7 @@ private:
 		mRoutingTable.RemoveNode(contact.mId, contact.mId ^ mLocalId);
 	}
 
-	XList<const KadContact*> FindClosest(const KadNodeId& id, int qty) const {
+	XList<const KadContact*> FindClosest(const KadId& id, int qty) const {
 		return mRoutingTable.FindClosest(id, id ^ mLocalId, qty);
 	}
 
@@ -459,6 +458,7 @@ private:
 		mOps.Append(new KadPing(this, address, h));
 	}
 
+public:
 	void DumpTable() const {
 		LOG(mLog, "Local ID : " << mLocalId);
 		mRoutingTable.Print();
@@ -470,8 +470,8 @@ private:
 	//KadConnMgr		mConnections;
 	XSocketUdp		mSocket;
 	XTimerContext	mTimers;
-	XTimerContext	mPeriodicTimers;
-	KadNodeId		mLocalId;
+	//XTimerContext	mPeriodicTimers;
+	KadId			mLocalId;
 	XSockAddr		mBindAddr;
 	KadRtNode		mRoutingTable;
 	XMutexRecursive	mLock;

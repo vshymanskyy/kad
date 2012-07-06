@@ -52,7 +52,7 @@ private:
 
 struct KadMsgContact
 {
-	KadNodeId	id;
+	KadId	id;
 	KadMsgAddr	addr;
 
 	KadMsgContact() {}
@@ -71,16 +71,16 @@ class KadMsgFindReq : public KadMsg
 {
 
 public:
-	KadMsgFindReq(KadMsgId msgId, const KadNodeId& nodeId,const KadNodeId& findId)
+	KadMsgFindReq(KadMsgId msgId, const KadId& nodeId,const KadId& findId)
 		: KadMsg(KadMsg::KAD_MSG_FIND_REQ, msgId, nodeId)
 		, mFindId (findId)
 	{
 	}
 
-	const KadNodeId& FindId() const { return mFindId; }
+	const KadId& FindId() const { return mFindId; }
 
 private:
-	KadNodeId mFindId;
+	KadId mFindId;
 
 } GCC_SPECIFIC(__attribute__((packed)));
 
@@ -88,7 +88,7 @@ class KadMsgFindRsp : public KadMsgRsp
 {
 
 public:
-	KadMsgFindRsp(KadMsgId msgId, const KadNodeId& nodeId, KadMsgStatus status, XList<const KadContact*> &lst)
+	KadMsgFindRsp(KadMsgId msgId, const KadId& nodeId, KadMsgStatus status, XList<const KadContact*> &lst)
 		: KadMsgRsp(KadMsg::KAD_MSG_FIND_RSP, msgId, nodeId, status)
 	{
 		X_ASSERT_LE(lst.Count(), KADEMLIA_BUCKET_SIZE, "%d");

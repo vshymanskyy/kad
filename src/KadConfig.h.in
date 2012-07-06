@@ -43,12 +43,12 @@
  * If no reply received from a node in this period (ms)
  * consider the node unresponsive.
  **/
-#define KADEMLIA_TIMEOUT_RESPONCE 50
+#define KADEMLIA_TIMEOUT_RESPONCE 100
 
 /**
  * Timeout for performing an operation (ms)
  **/
-#define KADEMLIA_TIMEOUT_OPERATION 300
+#define KADEMLIA_TIMEOUT_OPERATION 1000
 
 /**
  * Maximum number of concurrent messages in transit.
@@ -77,6 +77,6 @@
 //#define KADEMLIA_MAX_MSG_SIZE 576 // RFC 791 (1981).
 
 
-//#define KADEMLIA_DBG_BIN_ID
+#define KADEMLIA_DBG_BIN_ID
 
 #endif /* KAD_CONFIG_H_ */

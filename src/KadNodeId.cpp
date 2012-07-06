@@ -3,9 +3,9 @@
 #include "SHA1.h"
 
 template<>
-KadId<32> KadId<32>::FromHash(const void* data, size_t len)
+TKadId<32> TKadId<32>::FromHash(const void* data, size_t len)
 {
-	KadId result;
+	TKadId result;
 	SHA256 sha;
 	sha.Update(data, len);
 	sha.Finalize(result.mData);
@@ -13,9 +13,9 @@ KadId<32> KadId<32>::FromHash(const void* data, size_t len)
 }
 
 template<>
-KadId<20> KadId<20>::FromHash(const void* data, size_t len)
+TKadId<20> TKadId<20>::FromHash(const void* data, size_t len)
 {
-	KadId result;
+	TKadId result;
 	SHA1 sha;
 	sha.Update(data, len);
 	sha.Finalize(result.mData);
@@ -23,11 +23,11 @@ KadId<20> KadId<20>::FromHash(const void* data, size_t len)
 }
 
 template<>
-KadId<8> KadId<8>::FromHash(const void* data, size_t len)
+TKadId<8> TKadId<8>::FromHash(const void* data, size_t len)
 {
 	union {
 		struct {
-			KadId res[4];
+			TKadId res[4];
 		};
 		uint8_t buff[32];
 	} u;
@@ -38,11 +38,11 @@ KadId<8> KadId<8>::FromHash(const void* data, size_t len)
 }
 
 template<>
-KadId<1> KadId<1>::FromHash(const void* data, size_t len)
+TKadId<1> TKadId<1>::FromHash(const void* data, size_t len)
 {
 	union {
 		struct {
-			KadId res[4];
+			TKadId res[4];
 		};
 		uint8_t buff[32];
 	} u;
