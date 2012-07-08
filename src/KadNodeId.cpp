@@ -38,6 +38,21 @@ TKadId<8> TKadId<8>::FromHash(const void* data, size_t len)
 }
 
 template<>
+TKadId<2> TKadId<2>::FromHash(const void* data, size_t len)
+{
+	union {
+		struct {
+			TKadId res[4];
+		};
+		uint8_t buff[32];
+	} u;
+	SHA1 sha;
+	sha.Update(data, len);
+	sha.Finalize(u.buff);
+	return u.res[0];
+}
+
+template<>
 TKadId<1> TKadId<1>::FromHash(const void* data, size_t len)
 {
 	union {

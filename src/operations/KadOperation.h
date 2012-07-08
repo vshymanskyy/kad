@@ -21,11 +21,11 @@ public:
 
 	class SelectById {
 	public:
-		SelectById(KadMsgId id) : mId (id) {};
+		SelectById(const KadMsgId& id) : mId (id) {};
 		bool operator()(const KadOperation& t) { return mId == t.mId; }
 		bool operator()(const KadOperation* t) { return mId == t->mId; }
 	private:
-		KadMsgId mId;
+		const KadMsgId& mId;
 	};
 
 protected:

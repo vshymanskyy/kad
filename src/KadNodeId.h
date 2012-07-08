@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 
 #include "KadConfig.h"
 #include "XHelpers.h"
@@ -26,13 +25,13 @@ public:
 	    for (int i = SIZE-1; i>=0; i--) {
 	        unsigned u;
 	    	if (strBuff-hexStr >= 2 && sscanf(strBuff-2, "%2x", &u) == 1) {
-	    		result.mData[i] = u;
+	    		result.mData[i] = u & 0xFF;
 	    		strBuff -= 2;
 	    	} else if (strBuff-hexStr >= 2 && sscanf(strBuff-1, "%1x", &u) == 1) {
-	    		result.mData[i] = u;
+	    		result.mData[i] = u & 0xFF;
 	    		break;
 	    	} else if (strBuff-hexStr == 1 && sscanf(strBuff-1, "%1x", &u) == 1) {
-	    		result.mData[i] = u;
+	    		result.mData[i] = u & 0xFF;
 	    		break;
 	    	} else {
 	    		break;
@@ -40,6 +39,10 @@ public:
 	    }
 
 		return result;
+	}
+
+	static TKadId GenInRange(const TKadId& id1, const TKadId& id2) {
+
 	}
 
 	static TKadId FromHash(const void* data, size_t len);
@@ -68,45 +71,45 @@ public:
 public:
 	bool operator ==(const TKadId &id) const
 	{
-		return memcmp(mData, id.mData, sizeof(mData)) == 0;
+		return memcmp(mData, id.mData, SIZE) == 0;
 	}
 	bool operator !=(const TKadId &id) const
 	{
-		return memcmp(mData, id.mData, sizeof(mData)) != 0;
+		return memcmp(mData, id.mData, SIZE) != 0;
 	}
 	bool operator >=(const TKadId &id) const
 	{
-		return memcmp(mData, id.mData, sizeof(mData)) >= 0;
+		return memcmp(mData, id.mData, SIZE) >= 0;
 	}
 	bool operator <=(const TKadId &id) const
 	{
-		return memcmp(mData, id.mData, sizeof(mData)) <= 0;
+		return memcmp(mData, id.mData, SIZE) <= 0;
 	}
 	bool operator >(const TKadId &id) const
 	{
-		return memcmp(mData, id.mData, sizeof(mData)) > 0;
+		return memcmp(mData, id.mData, SIZE) > 0;
 	}
 	bool operator <(const TKadId &id) const
 	{
-		return memcmp(mData, id.mData, sizeof(mData)) < 0;
+		return memcmp(mData, id.mData, SIZE) < 0;
 	}
 
 	TKadId& operator ^=(const TKadId &id) {
-		for (unsigned i = 0; i < sizeof(mData); i++) {
+		for (unsigned i = 0; i < SIZE; i++) {
 			mData[i] ^= id.mData[i];
 		}
 		return *this;
 	}
 
 	TKadId& operator |=(const TKadId &id) {
-		for (unsigned i = 0; i < sizeof(mData); i++) {
+		for (unsigned i = 0; i < SIZE; i++) {
 			mData[i] |= id.mData[i];
 		}
 		return *this;
 	}
 
 	TKadId& operator &=(const TKadId &id) {
-		for (unsigned i = 0; i < sizeof(mData); i++) {
+		for (unsigned i = 0; i < SIZE; i++) {
 			mData[i] &= id.mData[i];
 		}
 		return *this;
@@ -114,7 +117,7 @@ public:
 
 	TKadId operator ^(const TKadId &id) const {
 		TKadId result;
-		for (unsigned i = 0; i < sizeof(mData); i++) {
+		for (unsigned i = 0; i < SIZE; i++) {
 			result.mData[i] = mData[i] ^ id.mData[i];
 		}
 		return result;
@@ -122,7 +125,7 @@ public:
 
 	TKadId operator |(const TKadId &id) const {
 		TKadId result;
-		for (unsigned i = 0; i < sizeof(mData); i++) {
+		for (unsigned i = 0; i < SIZE; i++) {
 			result.mData[i] = mData[i] | id.mData[i];
 		}
 		return result;
@@ -130,7 +133,7 @@ public:
 
 	TKadId operator &(const TKadId &id) const {
 		TKadId result;
-		for (unsigned i = 0; i < sizeof(mData); i++) {
+		for (unsigned i = 0; i < SIZE; i++) {
 			result.mData[i] = mData[i] & id.mData[i];
 		}
 		return result;
@@ -138,7 +141,7 @@ public:
 
 	TKadId operator ~() const {
 		TKadId result;
-		for (unsigned i = 0; i < sizeof(mData); i++) {
+		for (unsigned i = 0; i < SIZE; i++) {
 			result.mData[i] = ~mData[i];
 		}
 		return result;
@@ -149,7 +152,7 @@ public:
 	 *****************************************************************/
 	TKadId& ShiftLeft() {
 		uint8_t* byte = mData;
-		for (int size = sizeof(mData); size--; ++byte) {
+		for (int size = SIZE; size--; ++byte) {
 			unsigned char bit = 0;
 			if (size) {
 				bit = byte[1] & (1 << (8 - 1)) ? 1 : 0;
@@ -161,14 +164,14 @@ public:
 	}
 
 	bool GetBit(unsigned bit) const {
-		assert(bit < sizeof(mData)*8);
+		X_ASSERT(bit < SIZE*8);
 		const int i = bit / 8;
 		const int shift = 7 - (bit % 8);
 		return ((mData[i] >> shift) & 1);
 	}
 
 	TKadId& SetBit(unsigned bit, bool val = true) {
-		assert(bit < sizeof(mData)*8);
+		X_ASSERT(bit < SIZE*8);
 		const int i = bit / 8;
 		const int shift = 7 - (bit % 8);
 		mData[i] |= (1 << shift);
@@ -179,7 +182,7 @@ public:
 	}
 
 	TKadId& SwapBit(unsigned bit) {
-		assert(bit < sizeof(mData)*8);
+		X_ASSERT(bit < SIZE*8);
 		int i = bit / 8;
 		int shift = 7 - (bit % 8);
 		if ((mData[i] >> shift) & 1) {
@@ -192,7 +195,7 @@ public:
 	}
 
 	bool IsZero() const {
-		for (unsigned i = 0; i < sizeof(mData); i++) {
+		for (unsigned i = 0; i < SIZE; i++) {
 			if (mData[i])
 				return false;
 		}
@@ -202,10 +205,10 @@ public:
 	// returns n in: 2^n <= distance(n1, n2) < 2^(n+1)
 	// useful for finding out which bucket a node belongs to
 	unsigned DistanceTo(const TKadId& id) const {
-		for (unsigned i = 0; i < sizeof(mData); ++i) {
+		for (unsigned i = 0; i < SIZE; ++i) {
 			if (const uint8_t t = mData[i] ^ id.mData[i]) {
 				// Found non-matching byte, find exact bit
-				const int bit = (sizeof(mData) - 1 - i) * 8;
+				const unsigned bit = (SIZE - 1 - i) * 8;
 				for (int b = 7; b >= 0; --b) {
 					if (t >= (1 << b)) {
 						return bit + b + 1;
@@ -225,6 +228,20 @@ public:
 
 	const uint8_t* Data() const { return mData; }
 	uint8_t* Data() { return mData; }
+
+	XString ToString() const {
+		XString result;
+#ifdef KADEMLIA_DBG_BIN_ID
+		for (unsigned i = 0; i < SIZE*8; i++) {
+			result += GetBit(i)?"1":"0";
+		}
+#else
+		for (unsigned i = 0; i < SIZE; i++) {
+			result += XString::Format("%02x", mData[i]);
+		}
+#endif
+		return result;
+	}
 
 	/*****************************************************************
 	 * Private data

@@ -4,7 +4,7 @@
 #include "KadConfig.h"
 #include "KadNodeId.h"
 
-typedef uint32_t KadMsgId;
+typedef KadId KadMsgId;
 
 class KadMsg
 {
@@ -31,14 +31,14 @@ public:
 	};
 
 public:
-	KadMsg(KadMsgType type, KadMsgId msgId, const KadId& nodeId)
+	KadMsg(KadMsgType type, const KadMsgId& msgId, const KadId& nodeId)
 		: mMsgType	(type)
-		, mMsgId	(htonl(msgId))
+		, mMsgId	(msgId)
 		, mNodeId	(nodeId)
 	{}
 
 	//uint16_t Version() const { return ntohs(mVersion); }
-	uint32_t MsgId() const { return ntohl(mMsgId); }
+	const KadMsgId& MsgId() const { return mMsgId; }
 	KadMsgType MsgType() const { return KadMsgType(mMsgType); }
 	const KadId& NodeId() const { return mNodeId; }
 

@@ -92,4 +92,38 @@ public:
 		TS_ASSERT(TKadId<2>::FromHex("FF0").Closer(TKadId<2>::FromHex("F00"), TKadId<2>::FromHex("000")));
 	}
 
+	void testGenInRange1()
+	{
+		TKadId<8> prev;
+		for (int i=0; i<10; i++) {
+			TKadId<8> a = TKadId<8>::Random();
+			TKadId<8> b = TKadId<8>::Random();
+			for (int j=0; j<1000; j++) {
+				TKadId<8> gen = TKadId<8>::GenInRange(a, b);
+
+				TS_ASSERT_LESS_THAN_EQUALS(X_MIN(a,b), gen);
+				TS_ASSERT_LESS_THAN_EQUALS(gen, X_MAX(a,b));
+				TS_ASSERT_DIFFERS(gen, prev);
+
+				prev = gen;
+			}
+		}
+	}
+
+	void testGenInRange2()
+	{
+		TKadId<8> prev;
+		for (int j=0; j<100000; j++) {
+			TKadId<8> a = TKadId<8>::Random();
+			TKadId<8> b = TKadId<8>::Random();
+			TKadId<8> gen = TKadId<8>::GenInRange(a, b);
+
+			TS_ASSERT_LESS_THAN_EQUALS(X_MIN(a,b), gen);
+			TS_ASSERT_LESS_THAN_EQUALS(gen, X_MAX(a,b));
+			TS_ASSERT_DIFFERS(gen, prev);
+
+			prev = gen;
+		}
+	}
+
 };

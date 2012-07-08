@@ -8,7 +8,7 @@
 template <unsigned ID_SIZE, typename ADDR>
 struct TKadContact
 {
-	TKadId<ID_SIZE> 	mId;
+	TKadId<ID_SIZE> mId;
 	ADDR		mAddr;
 	unsigned	mFailQty;
 	unsigned	mRTT;

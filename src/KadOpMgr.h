@@ -332,7 +332,7 @@ private:
 			case KadMsg::KAD_MSG_REMOVE_RSP: {
 				mLock.Lock();
 				AddNode(KadContact(req.NodeId(), from));
-				if (!req.MsgId()) {
+				if (KadMsgId::Zero() == req.MsgId()) {
 					mLock.Unlock();
 					break;
 				}
@@ -356,13 +356,13 @@ private:
 	KadMsgId GenId() const {
 		KadMsgId id;
 		for (int gen = 0; gen < 100; gen++) {
-			MemRand(&id, sizeof(id));
-			if (0 != id && mOps.End() == mOps.FindAfter(mOps.First(), KadOperation::SelectById(id))) {
+			id = KadMsgId::Random();
+			if (KadMsgId::Zero() != id && mOps.End() == mOps.FindAfter(mOps.First(), KadOperation::SelectById(id))) {
 				return id;
 			}
 		}
 		X_FATAL("Could not find unused transaction id");
-		return 0;
+		return KadMsgId::Zero();
 	}
 
 	template <typename T>
@@ -429,21 +429,23 @@ public:
 
 	void Join(const XList<XSockAddr>& bsp) {
 		for (XList<XSockAddr>::It it = bsp.First(); it != bsp.End(); ++it) {
-			SendStructTo(KadMsgPing(0, mLocalId), bsp[it]);
+			SendStructTo(KadMsgPing(KadMsgId::Zero(), mLocalId), bsp[it]);
 		}
 		XThread::SleepMs(KADEMLIA_TIMEOUT_RESPONCE);
 		// Perform a node lookup for your own LocalId
 		Find(mLocalId, NULL);
 	}
 
-	XList<const KadContact*> Leave() const {
+	XList<const KadContact*> GetContacts() const {
 		return mRoutingTable.GetContacts();
 	}
 
 private:
 
 	void AddNode(const KadContact& contact) {
-		mRoutingTable.AddNode(contact, contact.mId ^ mLocalId);
+		if (contact.mId != mLocalId) {
+			mRoutingTable.AddNode(contact, contact.mId ^ mLocalId);
+		}
 	}
 
 	void RemoveNode(const KadContact& contact) {
