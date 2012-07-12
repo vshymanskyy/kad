@@ -41,11 +41,9 @@ public:
 		return result;
 	}
 
-	static TKadId GenInRange(const TKadId& id1, const TKadId& id2) {
-
-	}
-
 	static TKadId FromHash(const void* data, size_t len);
+
+	static TKadId FromHash(const char* str) { return FromHash(str, strlen(str)); }
 
 	static TKadId Random() {
 		XString unique = XString::Format("%d-%d", RandRange(0, 10000), RandRange(0, 10000));
@@ -163,6 +161,16 @@ public:
 		return *this;
 	}
 
+	TKadId& ShiftLeft(unsigned uBits)
+	{
+		// TODO: Optimize
+		for (int i=0; i<uBits; ++i) {
+			ShiftLeft();
+		}
+		return *this;
+	}
+
+
 	bool GetBit(unsigned bit) const {
 		X_ASSERT(bit < SIZE*8);
 		const int i = bit / 8;
@@ -177,6 +185,13 @@ public:
 		mData[i] |= (1 << shift);
 		if (!val) {
 			mData[i] ^= (1 << shift);
+		}
+		return *this;
+	}
+
+	TKadId& SetBits(unsigned bit, unsigned qty, bool val = true) {
+		for (int i=bit; i<bit+qty; i++) {
+			SetBit(i, val);
 		}
 		return *this;
 	}
@@ -248,7 +263,7 @@ public:
 	 *****************************************************************/
 private:
 	uint8_t mData[SIZE];
-} GCC_SPECIFIC(__attribute__((packed)));
+};
 
 template <unsigned SIZE>
 inline

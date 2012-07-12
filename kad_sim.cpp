@@ -6,9 +6,6 @@
 #include "KadOpMgr.h"
 #include "KadContact.h"
 
-//template <typename T>
-//const T& ()
-
 int simBasePort = 3000;
 
 XList<KadOpMgr*> allNodes;

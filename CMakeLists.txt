@@ -36,7 +36,7 @@ add_subdirectory (udt4)
 add_subdirectory (xplat)
 
 add_library (kad ${kad_src})
-target_link_libraries (kad xplat udt4)
+target_link_libraries (kad xplat udt4 cryptopp)
 
 add_executable(kad_test ${CMAKE_BINARY_DIR}/kad_test.cpp)
 target_link_libraries (kad_test kad)
