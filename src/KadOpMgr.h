@@ -13,10 +13,11 @@
 
 #include "KadConfig.h"
 #include "KadRtNode.h"
-#include "KadConnMgr.h"
 
 #include "operations/KadPing.h"
 #include "operations/KadFind.h"
+
+#include "KadOverIP.h"
 
 inline
 const XLog::Stream& operator <<(const XLog::Stream& str, const KadMsg& v)
@@ -30,19 +31,45 @@ const XLog::Stream& operator <<(const XLog::Stream& str, const KadMsg& v)
 	}
 }
 
-class KadOpMgr
-	: public XThread
-{
+class KadOpMgr {
 	friend class KadOpMgrTS;
 
-public:
+private:
+	class KadOperation {
+	public:
+		KadOperation(KadOpMgr* mgr, KadMsgId id)
+			: mId	(id)
+			, mMgr	(mgr)
+		{
+			XPlatGetTime(&mStarted, NULL);
+		}
+
+		virtual ~KadOperation() {}
+
+		virtual void Process(const KadMsgRsp* rsp) = 0;
+
+		class SelectById {
+		public:
+			SelectById(const KadMsgId& id) : mId (id) {};
+			bool operator()(const KadOperation& t) { return mId == t.mId; }
+			bool operator()(const KadOperation* t) { return mId == t->mId; }
+		private:
+			const KadMsgId& mId;
+		};
+
+	protected:
+		KadMsgId		mId;
+		KadOpMgr*		mMgr;
+		XPlatDateTime	mStarted;
+	};
+
 	class KadPing
 		: public KadOperation
 	{
 	public:
 		typedef XDelegate< void () > Handler;
 
-		KadPing(KadOpMgr* mgr, const XSockAddr& addr, Handler h)
+		KadPing(KadOpMgr* mgr, const KadNet::Address& addr, Handler h)
 			: KadOperation (mgr, mgr->GenId()), mAddr(addr), mHandler(h)
 		{
 			mMgr->mTimers.SetTimer(XTimerContext::Handler(this, &KadPing::SendPing), 0, 200);
@@ -71,7 +98,7 @@ public:
 			LOG(mMgr->mLog, "Ping timeout " << mAddr.ToString());
 			Stop();
 		}
-		XSockAddr mAddr;
+		KadNet::Address mAddr;
 		Handler mHandler;
 	};
 
@@ -79,31 +106,31 @@ public:
 	class KadFind
 		: public KadOperation
 	{
-			class Contact
-				: public KadContact
+		class Contact
+			: public KadContact
+		{
+		public:
+			bool IsPending() const { return mState == PENDING && !IsTimeout(); }
+			bool IsTimeout() const { return mState == PENDING && mTime.Elapsed() >= KADEMLIA_TIMEOUT_RESPONCE; }
+			bool IsContacted() const { return mState == CONTACTED; }
+			bool IsNew() const { return mState == NEW && !IsStale(); }
+
+			void GotTimeout() { mFailQty += 1;	mState = NEW; }
+			void GotResponce() { mFailQty = 0;	mState = CONTACTED; }
+			void SentRequest() { mTime.Reset();	mState = PENDING; }
+
+			Contact (const KadContact& c)
+				: KadContact(c)
+				, mState(NEW)
 			{
-			public:
-				bool IsPending() const { return mState == PENDING && !IsTimeout(); }
-				bool IsTimeout() const { return mState == PENDING && mTime.Elapsed() >= KADEMLIA_TIMEOUT_RESPONCE; }
-				bool IsContacted() const { return mState == CONTACTED; }
-				bool IsNew() const { return mState == NEW && !IsStale(); }
-
-				void GotTimeout() { mFailQty += 1;	mState = NEW; }
-				void GotResponce() { mFailQty = 0;	mState = CONTACTED; }
-				void SentRequest() { mTime.Reset();	mState = PENDING; }
-
-				Contact (const KadContact& c)
-					: KadContact(c)
-					, mState(NEW)
-				{
-					mFailQty = 0;
-				}
-			private:
-				enum State {
-					NEW, PENDING, CONTACTED, STALE
-				} mState;
-				XTimeCounter mTime;
-			};
+				mFailQty = 0;
+			}
+		private:
+			enum State {
+				NEW, PENDING, CONTACTED, STALE
+			} mState;
+			XTimeCounter mTime;
+		};
 	public:
 		typedef XDelegate< void (XList<Contact>&) > Handler;
 
@@ -234,7 +261,8 @@ public:
 						}
 					}
 				}
-				next_req:;
+				next_req:
+				;
 			}
 			if (sent) {
 				mMgr->mTimers.SetTimer(XTimerContext::Handler(this, &KadFind::Timeout), KADEMLIA_TIMEOUT_RESPONCE);
@@ -279,77 +307,62 @@ public:
 
 
 private:
-	virtual int Run()
-	{
-		XSockAddr from;
+	void RecieveCbk(const void* buff, unsigned len, const KadNet::Address& from) {
+		const KadMsg* req = (const KadMsg*)buff;
 
-		char buffer[KADEMLIA_MAX_MSG_SIZE];
-		const KadMsg& req = (const KadMsg&)buffer;
+		LOG_DEEP(mLog, "<< " << req);
 
-		while (!IsStopping()) {
-			ssize_t len = mSocket.RecvFrom(&buffer, sizeof(buffer), &from);
-			if (len <= 0) continue;
-			if (IsStopping()) break;
+		switch (req->MsgType()) {
+		case KadMsg::KAD_MSG_PING: {
+			const KadMsgPing* req = (const KadMsgPing*)buff;
+			SendStructTo(KadMsgPong(req->MsgId(), mLocalId), from);
 
-			if (DELAY_RX) {
-				XThread::SleepMs(RandRange(0,DELAY_RX));
-			}
+			mLock.Lock();
+			AddNode(KadContact(req->NodeId(), from));
+			mLock.Unlock();
+		} break;
+		case KadMsg::KAD_MSG_FIND_REQ: {
+			const KadMsgFindReq* req = (const KadMsgFindReq*)buff;
+			mLock.Lock();
+			AddNode(KadContact(req->NodeId(), from));
 
-			LOG_DEEP(mLog, "<< " << req);
+			XList<const KadContact*> lst = FindClosest(req->FindId(), KADEMLIA_BUCKET_SIZE);
 
-			switch (req.MsgType()) {
-			case KadMsg::KAD_MSG_PING: {
-				const KadMsgPing& req = (const KadMsgPing&)buffer;
-				SendStructTo(KadMsgPong(req.MsgId(), mLocalId), from);
+			// TODO: Remove the originating id
 
-				mLock.Lock();
-				AddNode(KadContact(req.NodeId(), from));
+			SendStructTo(KadMsgFindRsp(req->MsgId(), mLocalId, KadMsgRsp::KAD_MSG_STATUS_OK, lst), from);
+			mLock.Unlock();
+
+		} break;
+		case KadMsg::KAD_MSG_STORE_REQ: {
+
+		} break;
+		case KadMsg::KAD_MSG_REMOVE_REQ: {
+
+		} break;
+		case KadMsg::KAD_MSG_PONG:
+		case KadMsg::KAD_MSG_JOIN_RSP:
+		case KadMsg::KAD_MSG_FIND_RSP:
+		case KadMsg::KAD_MSG_STORE_RSP:
+		case KadMsg::KAD_MSG_REMOVE_RSP: {
+			mLock.Lock();
+			AddNode(KadContact(req->NodeId(), from));
+			if (KadMsgId::Zero() == req->MsgId()) {
 				mLock.Unlock();
-			} break;
-			case KadMsg::KAD_MSG_FIND_REQ: {
-				const KadMsgFindReq& req = (const KadMsgFindReq&)buffer;
-				mLock.Lock();
-				AddNode(KadContact(req.NodeId(), from));
-
-				XList<const KadContact*> lst = FindClosest(req.FindId(), KADEMLIA_BUCKET_SIZE);
-
-				// TODO: Remove the originating id
-
-				SendStructTo(KadMsgFindRsp(req.MsgId(), mLocalId, KadMsgRsp::KAD_MSG_STATUS_OK, lst), from);
-				mLock.Unlock();
-
-			} break;
-			case KadMsg::KAD_MSG_STORE_REQ: {
-
-			} break;
-			case KadMsg::KAD_MSG_REMOVE_REQ: {
-
-			} break;
-			case KadMsg::KAD_MSG_PONG:
-			case KadMsg::KAD_MSG_JOIN_RSP:
-			case KadMsg::KAD_MSG_FIND_RSP:
-			case KadMsg::KAD_MSG_STORE_RSP:
-			case KadMsg::KAD_MSG_REMOVE_RSP: {
-				mLock.Lock();
-				AddNode(KadContact(req.NodeId(), from));
-				if (KadMsgId::Zero() == req.MsgId()) {
-					mLock.Unlock();
-					break;
-				}
-				XList<KadOperation*>::It t = mOps.FindAfter(mOps.First(), KadOperation::SelectById(req.MsgId()));
-				if (t != mOps.End()) {
-					mOps[t]->Process((const KadMsgRsp*)buffer);
-				} else {
-					LOG_WARN(mLog, "Transaction not found");
-				}
-				mLock.Unlock();
-			} break;
-			default:
-				LOG_WARN(mLog, "Message not handled (type: " << req.MsgType() << ")");
 				break;
 			}
+			XList<KadOperation*>::It t = mOps.FindAfter(mOps.First(), KadOperation::SelectById(req->MsgId()));
+			if (t != mOps.End()) {
+				mOps[t]->Process((const KadMsgRsp*)buff);
+			} else {
+				LOG_WARN(mLog, "Transaction not found");
+			}
+			mLock.Unlock();
+		} break;
+		default:
+			LOG_WARN(mLog, "Message not handled (type: " << req->MsgType() << ")");
+			break;
 		}
-		return 0;
 	}
 
 private:
@@ -366,43 +379,20 @@ private:
 	}
 
 	template <typename T>
-	void SendStructTo(const T& s, const XSockAddr& addr) const {
-		LOG(mLog, ">>" << addr.ToString() << ":" << s);
-
-		if (RandRange(0,100) >= DROP_RATE_TX) { // TODO: Remove
-			mSocket.SendTo(&s, sizeof(s), addr);
-		}
+	void SendStructTo(const T& s, const KadNet::Address& addr) const {
+		mListener.SendTo(&s, sizeof(s), addr);
 	}
 public:
 
-	static int DROP_RATE_TX;
-	static int DROP_RATE_RX;
-	static int DELAY_RX;
-
 	KadOpMgr(const KadId& id, const XSockAddr& addr)
-		: XThread(addr.ToString())
-		, mLocalId (id)
+		: mLocalId (id)
+		, mListener(addr, KadNet::Listener::Handler(this, &KadOpMgr::RecieveCbk))
 	{
-		//mLog.SetLevel(XLog::WARN);
-		if (mSocket.Bind(addr)) {
-			mBindAddr = mSocket.GetBindAddr();
-			LOG(mLog, "Bound to address " << mBindAddr.ToString());
-		} else {
-			LOG_CRIT(mLog, "Could not bind to address " << mBindAddr.ToString());
-			return;
-		}
 
-		Start();
-	}
-
-	virtual ~KadOpMgr() {
-		XThread::Stop();
-		mSocket.SendTo("wake!", 6, mSocket.GetBindAddr());
-		XThread::Wait();
 	}
 
 	const KadId& LocalId() const { return mLocalId; }
-	const XSockAddr& BindAddr() const { return mBindAddr; }
+	const KadNet::Address BindAddr() const { return mListener.BindAddr(); }
 
 
 	void Find(const KadId& key, KadFind::Handler h) {
@@ -456,7 +446,7 @@ private:
 		return mRoutingTable.FindClosest(id, id ^ mLocalId, qty);
 	}
 
-	void Ping(const XSockAddr& address, KadPing::Handler h) {
+	void Ping(const KadNet::Address& address, KadPing::Handler h) {
 		mOps.Append(new KadPing(this, address, h));
 	}
 
@@ -469,14 +459,14 @@ public:
 private:
 	XList<KadOperation*> mOps;
 
-	//KadConnMgr		mConnections;
-	XSocketUdp		mSocket;
 	XTimerContext	mTimers;
 	//XTimerContext	mPeriodicTimers;
 	KadId			mLocalId;
-	XSockAddr		mBindAddr;
 	KadRtNode		mRoutingTable;
 	XMutexRecursive	mLock;
+	XLog 			mLog;
+
+	KadNet::Listener mListener;
 };
 
 #endif /* KADTRANSACTIONMGR_H_ */

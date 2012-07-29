@@ -1,32 +1,32 @@
-#include "KadConnMgr.h"
+#include "KadOverIP.h"
 #include <cxxtest/TestSuite.h>
 
-class KadConnMgrTS: public CxxTest::TestSuite
+class KadConnMgrTS : public CxxTest::TestSuite
 {
 public:
 
 	void testMessage(void)
 	{
-		XSockAddr a("127.0.0.1:3004");
-		XSockAddr b("127.0.0.1:3005");
-		XSockAddr c("127.0.0.1:3006");
+		KadNet::Address a("127.0.0.1:3004");
+		KadNet::Address b("127.0.0.1:3005");
+		KadNet::Address c("127.0.0.1:3006");
 
-		KadConnMgr conna(a);
-		KadConnMgr connb(b);
-		KadConnMgr connc(c);
+		KadNet::ConnectionMgr conna(a);
+		KadNet::ConnectionMgr connb(b);
+		KadNet::ConnectionMgr connc(c);
 
-		UDTSOCKET socka = conna.Connect(c);
-		UDTSOCKET sockb = connb.Connect(a);
-		UDTSOCKET sockc = connc.Connect(b);
+		KadNet::ConnectionMgr::Connection* socka = conna.Connect(c);
+		KadNet::ConnectionMgr::Connection* sockb = connb.Connect(a);
+		KadNet::ConnectionMgr::Connection* sockc = connc.Connect(b);
 
-		UDT::sendmsg(socka, "aaaaa", 6);
+		socka->Send("aaaaa", 6);
 
-		UDT::close(socka);
-		UDT::close(sockb);
-		UDT::close(sockc);
+		delete (socka);
+		delete (sockb);
+		delete (sockc);
 
-		UDT::sendmsg(socka, "aaaaa", 6);
+		socka->Send("aaaaa", 6);
 
-		XThread::SleepMs(1000);
+		XThread::SleepMs(100);
 	}
 };

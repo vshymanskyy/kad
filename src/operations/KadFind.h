@@ -1,4 +1,3 @@
-#include "KadOperation.h"
 #include "KadMsg.h"
 
 class KadMsgAddr

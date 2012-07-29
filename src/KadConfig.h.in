@@ -8,7 +8,7 @@
 /**
  * Kademlia ID size
  **/
-#define KADEMLIA_ID_BITS 64
+#define KADEMLIA_ID_BITS 128
 #define KADEMLIA_ID_SIZE (KADEMLIA_ID_BITS/8)
 
 /**
@@ -58,7 +58,7 @@
 /**
  * K-Bucket size (K).
  **/
-#define KADEMLIA_BUCKET_SIZE 4
+#define KADEMLIA_BUCKET_SIZE 20
 
 /**
  * Size of replacement cache.

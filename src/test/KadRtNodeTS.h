@@ -4,10 +4,9 @@
 
 #include <cxxtest/TestSuite.h>
 
-
 class KadRtNodeTS: public CxxTest::TestSuite
 {
-	struct Void{};
+	struct Void { };
 	typedef TKadRtNode<Void> TestRt;
 public:
 

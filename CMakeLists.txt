@@ -32,14 +32,20 @@ add_custom_command (
 	COMMAND python -B ${PROJECT_SOURCE_DIR}/cxxtest/bin/cxxtestgen --xunit-printer -o ${CMAKE_BINARY_DIR}/kad_test.cpp ${kad_tests}
 )
 
-add_subdirectory (udt4)
 add_subdirectory (xplat)
 
+if (WIN32)
+	add_subdirectory (udt4)
+endif (WIN32)
+
 add_library (kad ${kad_src})
-target_link_libraries (kad xplat udt4 cryptopp)
+target_link_libraries (kad xplat udt cryptopp)
 
 add_executable(kad_test ${CMAKE_BINARY_DIR}/kad_test.cpp)
 target_link_libraries (kad_test kad)
 
 add_executable(kad_sim kad_sim.cpp)
-target_link_libraries (kad_sim ${CMAKE_THREAD_LIBS_INIT} kad)
+target_link_libraries (kad_sim kad)
+
+add_executable(kad_node kad_node.cpp)
+target_link_libraries (kad_node kad)

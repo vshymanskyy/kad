@@ -17,6 +17,9 @@ class TKadId
 	 * Generators
 	 *****************************************************************/
 public:
+
+	enum { ID_SIZE = SIZE };
+
 	static TKadId FromHex(const char* hexStr) {
 		TKadId result;
 		memset(result.mData, 0, SIZE);

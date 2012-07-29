@@ -142,25 +142,6 @@ int RemoveCli(int argc, char* argv[])
 	return 0;
 }
 
-static
-int SetDropRateCli(int argc, char* argv[])
-{
-	if (argc <= 1) {
-		printf("Set global drop rate.\n  drop <rx=%d> <tx=%d>\n", KadOpMgr::DROP_RATE_RX, KadOpMgr::DROP_RATE_TX);
-		return 1;
-	}
-	if (argc >= 2) {
-		int qty = atoi(argv[1]);
-		KadOpMgr::DROP_RATE_RX = qty;
-	}
-	if (argc >= 3) {
-		int qty = atoi(argv[2]);
-		KadOpMgr::DROP_RATE_TX = qty;
-	}
-
-	return 0;
-}
-
 
 int main(int argc, char *argv[])
 {
@@ -177,14 +158,6 @@ int main(int argc, char *argv[])
 
 	sh.RegisterCommand("rt", &PrintRt);
 	sh.RegisterCommand("dot", &SaveDot);
-
-	//sh.RegisterCommand("fn", &FindNodeCli);
-	//sh.RegisterCommand("fv", &FindValueCli);
-
-	//sh.RegisterCommand("s", &StoreCli);
-	//sh.RegisterCommand("rm", &RemoveCli);
-
-	sh.RegisterCommand("drop", &SetDropRateCli);
 
 	sh.Run();
 
