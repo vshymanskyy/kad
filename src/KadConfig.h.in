@@ -8,7 +8,7 @@
 /**
  * Kademlia ID size
  **/
-#define KADEMLIA_ID_BITS 128
+#define KADEMLIA_ID_BITS 64
 #define KADEMLIA_ID_SIZE (KADEMLIA_ID_BITS/8)
 
 /**
@@ -43,17 +43,27 @@
  * If no reply received from a node in this period (ms)
  * consider the node unresponsive.
  **/
-#define KADEMLIA_TIMEOUT_RESPONCE 100
+#define KADEMLIA_TIMEOUT_RESPONCE 10
 
 /**
  * Timeout for performing an operation (ms)
  **/
-#define KADEMLIA_TIMEOUT_OPERATION 1000
+#define KADEMLIA_TIMEOUT_OPERATION 100
 
 /**
  * Maximum number of concurrent messages in transit.
  **/
 #define KADEMLIA_ALPHA 3
+
+/**
+ * Log base exponent
+ **/
+#define KADEMLIA_B 2
+
+/**
+ * Routing table levels allowed to split
+ **/
+#define KADEMLIA_RT_BASE 2
 
 /**
  * K-Bucket size (K).
@@ -75,7 +85,6 @@
  **/
 #define KADEMLIA_MAX_MSG_SIZE 1400
 //#define KADEMLIA_MAX_MSG_SIZE 576 // RFC 791 (1981).
-
 
 //#define KADEMLIA_DBG_BIN_ID
 

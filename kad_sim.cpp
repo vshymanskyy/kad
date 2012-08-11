@@ -6,6 +6,8 @@
 #include "KadOpMgr.h"
 #include "KadContact.h"
 
+#include <iostream>
+
 int simBasePort = 3000;
 
 XList<KadOpMgr*> allNodes;
@@ -105,7 +107,34 @@ int PrintRt(int argc, char* argv[])
 {
 	if (!mgrNode) return 1;
 
-	mgrNode->DumpTable();
+	std::fstream s;
+	s.open("rt.dot", fstream::out);
+	mgrNode->DumpTableDot(s);
+	s.close();
+	return 0;
+}
+
+static
+int TestRT(int argc, char* argv[])
+{
+	KadRtNode rt(KadId::Random());
+
+	for (int i=0; i<100000; i++) {
+		rt.AddNode(KadRtNode::Contact(KadId::Random(), XSockAddr::Random()));
+	}
+
+	std::fstream s;
+	s.open("/tmp/rt.dot", fstream::out);
+		s << "digraph G {" << std::endl;
+		//s << "fontpath=\"/usr/share/fonts/truetype/ubuntu-font-family\"" << std::endl;
+		//s << "fontname=\"UbuntuMono-R\"" << std::endl;
+		s << "fontsize=\"9\"" << std::endl;
+		s << "resolution=\"64\"" << std::endl;
+			rt.PrintDot(s);
+		s << "}" << std::endl;
+	s.close();
+	system("dot -Tpng /tmp/rt.dot -o /tmp/rt.png");
+	system("gwenview /tmp/rt.png");
 	return 0;
 }
 
@@ -158,6 +187,8 @@ int main(int argc, char *argv[])
 
 	sh.RegisterCommand("rt", &PrintRt);
 	sh.RegisterCommand("dot", &SaveDot);
+
+	sh.RegisterCommand("test_rt", &TestRT);
 
 	sh.Run();
 

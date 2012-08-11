@@ -19,6 +19,9 @@
 
 #include "KadOverIP.h"
 
+#include <iostream>
+using namespace std;
+
 inline
 const XLog::Stream& operator <<(const XLog::Stream& str, const KadMsg& v)
 {
@@ -91,7 +94,7 @@ private:
 		}
 	private:
 		void SendPing() {
-			mMgr->SendStructTo(KadMsgPing(mId, mMgr->mLocalId), mAddr);
+			mMgr->SendStructTo(KadMsgPing(mId, mMgr->LocalId()), mAddr);
 		}
 
 		void Timeout() {
@@ -172,7 +175,7 @@ private:
 			int pendingQty = Cleanup();
 			int insertQty = 0;
 			for (int i=0; i<KADEMLIA_BUCKET_SIZE; i++) {
-				if (!msg->mContacts[i].id.IsZero() && msg->mContacts[i].id != mMgr->mLocalId) {
+				if (!msg->mContacts[i].id.IsZero() && msg->mContacts[i].id != mMgr->LocalId()) {
 					KadContact c = msg->mContacts[i];
 					if (Insert(Contact(c))) {
 						insertQty++;
@@ -254,7 +257,7 @@ private:
 					for (XList<Contact>::It it=mList.First(); it!=mList.End(); ++it) {
 						if (mList[it].IsNew() && stale == mList[it].mFailQty) {
 							mList[it].SentRequest();
-							mMgr->SendStructTo(KadMsgFindReq(mId, mMgr->mLocalId, mKey), mList[it].mAddr);
+							mMgr->SendStructTo(KadMsgFindReq(mId, mMgr->LocalId(), mKey), mList[it].mAddr);
 
 							sent++;
 							goto next_req;
@@ -315,7 +318,7 @@ private:
 		switch (req->MsgType()) {
 		case KadMsg::KAD_MSG_PING: {
 			const KadMsgPing* req = (const KadMsgPing*)buff;
-			SendStructTo(KadMsgPong(req->MsgId(), mLocalId), from);
+			SendStructTo(KadMsgPong(req->MsgId(), LocalId()), from);
 
 			mLock.Lock();
 			AddNode(KadContact(req->NodeId(), from));
@@ -330,7 +333,7 @@ private:
 
 			// TODO: Remove the originating id
 
-			SendStructTo(KadMsgFindRsp(req->MsgId(), mLocalId, KadMsgRsp::KAD_MSG_STATUS_OK, lst), from);
+			SendStructTo(KadMsgFindRsp(req->MsgId(), LocalId(), KadMsgRsp::KAD_MSG_STATUS_OK, lst), from);
 			mLock.Unlock();
 
 		} break;
@@ -367,12 +370,12 @@ private:
 
 private:
 	KadMsgId GenId() const {
-		KadMsgId id;
+		KadMsgId id = KadMsgId::Random();
 		for (int gen = 0; gen < 100; gen++) {
-			id = KadMsgId::Random();
 			if (KadMsgId::Zero() != id && mOps.End() == mOps.FindAfter(mOps.First(), KadOperation::SelectById(id))) {
 				return id;
 			}
+			id = KadMsgId::Random();
 		}
 		X_FATAL("Could not find unused transaction id");
 		return KadMsgId::Zero();
@@ -385,13 +388,13 @@ private:
 public:
 
 	KadOpMgr(const KadId& id, const XSockAddr& addr)
-		: mLocalId (id)
+		: mRoutingTable (id)
 		, mListener(addr, KadNet::Listener::Handler(this, &KadOpMgr::RecieveCbk))
 	{
 
 	}
 
-	const KadId& LocalId() const { return mLocalId; }
+	const KadId& LocalId() const { return mRoutingTable.LocalId(); }
 	const KadNet::Address BindAddr() const { return mListener.BindAddr(); }
 
 
@@ -419,11 +422,11 @@ public:
 
 	void Join(const XList<XSockAddr>& bsp) {
 		for (XList<XSockAddr>::It it = bsp.First(); it != bsp.End(); ++it) {
-			SendStructTo(KadMsgPing(KadMsgId::Zero(), mLocalId), bsp[it]);
+			SendStructTo(KadMsgPing(KadMsgId::Zero(), LocalId()), bsp[it]);
 		}
 		XThread::SleepMs(KADEMLIA_TIMEOUT_RESPONCE);
 		// Perform a node lookup for your own LocalId
-		Find(mLocalId, NULL);
+		Find(LocalId(), NULL);
 	}
 
 	XList<const KadContact*> GetContacts() const {
@@ -433,17 +436,13 @@ public:
 private:
 
 	void AddNode(const KadContact& contact) {
-		if (contact.mId != mLocalId) {
-			mRoutingTable.AddNode(contact, contact.mId ^ mLocalId);
+		if (contact.mId != LocalId()) {
+			mRoutingTable.AddNode(contact);
 		}
 	}
 
-	void RemoveNode(const KadContact& contact) {
-		mRoutingTable.RemoveNode(contact.mId, contact.mId ^ mLocalId);
-	}
-
-	XList<const KadContact*> FindClosest(const KadId& id, int qty) const {
-		return mRoutingTable.FindClosest(id, id ^ mLocalId, qty);
+	XList<const KadContact*> FindClosest(const KadId& id, unsigned qty) const {
+		return mRoutingTable.FindClosest(id, qty);
 	}
 
 	void Ping(const KadNet::Address& address, KadPing::Handler h) {
@@ -452,8 +451,14 @@ private:
 
 public:
 	void DumpTable() const {
-		LOG(mLog, "Local ID : " << mLocalId);
+		LOG(mLog, "Local ID : " << LocalId());
 		mRoutingTable.Print();
+	}
+
+	void DumpTableDot(ostream& s) const {
+		s << "digraph G {" << std::endl;
+		mRoutingTable.PrintDot(s);
+		s << "}" << std::endl;
 	}
 
 private:
@@ -461,7 +466,6 @@ private:
 
 	XTimerContext	mTimers;
 	//XTimerContext	mPeriodicTimers;
-	KadId			mLocalId;
 	KadRtNode		mRoutingTable;
 	XMutexRecursive	mLock;
 	XLog 			mLog;

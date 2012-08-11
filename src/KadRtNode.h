@@ -11,6 +11,8 @@
 #include "XArray.h"
 #include "XLog.h"
 
+#include <iostream>
+
 template <typename ADDR>
 class TKadRtNode
 {
@@ -22,10 +24,26 @@ private:
 	typedef XList<Contact> ContactList;
 
 private:
+	TKadRtNode(const Id& local, unsigned depth, const Id& index)
+		: mDepth(depth), mIndex(index), mLocalId(local), m0(NULL), m1(NULL)
+	{
+	}
+
 	TKadRtNode* Closest(const Id& d) const { return d.GetBit(mDepth) ? m1 : m0; }
 	TKadRtNode* Farthest(const Id& d) const { return d.GetBit(mDepth) ? m0 : m1; }
-	bool IsSplittable() const { return (mDepth < KADEMLIA_ID_BITS && mIndex < Id::PowerOfTwo(mDepth % 2)); }
 	bool IsBucket() const { return !(m0 || m1); }
+
+	bool IsSplittable() const {
+		if (mDepth >= (KADEMLIA_ID_BITS-1)) {
+			return false;
+		}
+
+		if (mContacts.Count() < KADEMLIA_BUCKET_SIZE) {
+			return false;
+		}
+
+		return mDepth < KADEMLIA_RT_BASE || mIndex < Id::PowerOfTwo(mDepth % KADEMLIA_B);
+	}
 
 	bool Split(const Id& localId) {
 		X_ASSERT(!m0);
@@ -40,8 +58,8 @@ private:
 		Id newIndex = mIndex;
 		newIndex.ShiftLeft();
 
-		m0 = new TKadRtNode(mDepth + 1, newIndex);
-		m1 = new TKadRtNode(mDepth + 1, newIndex | Id::PowerOfTwo(0));
+		m0 = new TKadRtNode(mLocalId, mDepth + 1, newIndex);
+		m1 = new TKadRtNode(mLocalId, mDepth + 1, newIndex | Id::PowerOfTwo(0));
 		X_ASSERT(m0);
 		X_ASSERT(m1);
 
@@ -54,44 +72,6 @@ private:
 
 		KAD_STATS.mSplitDoneQty++;
 		return true;
-	}
-
-	TKadRtNode(unsigned depth, const Id& index)
-		: mDepth(depth), mIndex(index), m0(NULL), m1(NULL)
-	{
-	}
-
-public:
-
-	TKadRtNode()
-		: mDepth(0), mIndex(Id::Zero()), m0(NULL), m1(NULL)
-	{
-	}
-
-	~TKadRtNode() {
-		if (m0) delete m0;
-		if (m1) delete m1;
-	}
-
-	unsigned CountContacts() const { return IsBucket()?mContacts.Count():(m0->CountContacts() + m1->CountContacts()); }
-	unsigned CountCache() const { return IsBucket()?mCache.Count():(m0->CountCache() + m1->CountCache()); }
-	unsigned CountBuckets() const { return IsBucket()?1:(m0->CountBuckets() + m1->CountBuckets()); }
-	unsigned CountSpaces() const { return IsBucket()?0:(m0->CountSpaces() + m1->CountSpaces() + 1); }
-
-	Id RandomId(const Id& local) const {
-		Id prefix = Id(mIndex).ShiftLeft(KADEMLIA_ID_BITS - mDepth);
-		Id rndId = Id::Random().SetBits(0, mDepth, 0);
-		return (rndId | prefix) ^ local;
-	}
-
-	XList<Id> GetRefreshList(const Id& local) {
-		XList<Id> refreshList;
-		for (int i=1; i<KADEMLIA_ID_SIZE; i++) {
-			Id prefix = Id::PowerOfTwo(i);
-			Id rndId = Id::Random().SetBits(0, i, 0);
-			refreshList.Append((rndId | prefix) ^ local);
-		}
-		return refreshList;
 	}
 
 	bool AddNode(const Contact& newNode, const Id& d) {
@@ -185,6 +165,53 @@ public:
 		}
 	}
 
+public:
+
+	TKadRtNode(const Id& local)
+		: mDepth(0), mIndex(Id::Zero()), mLocalId(local), m0(NULL), m1(NULL)
+	{
+	}
+
+	~TKadRtNode() {
+		if (m0) delete m0;
+		if (m1) delete m1;
+	}
+
+	unsigned CountContacts() const { return IsBucket()?mContacts.Count():(m0->CountContacts() + m1->CountContacts()); }
+	unsigned CountCache() const { return IsBucket()?mCache.Count():(m0->CountCache() + m1->CountCache()); }
+	unsigned CountBuckets() const { return IsBucket()?1:(m0->CountBuckets() + m1->CountBuckets()); }
+	unsigned CountSpaces() const { return IsBucket()?0:(m0->CountSpaces() + m1->CountSpaces() + 1); }
+
+	const Id& LocalId() const { return mLocalId; }
+
+	Id RandomId() const {
+		Id prefix = Id(mIndex).ShiftLeft(KADEMLIA_ID_BITS - mDepth);
+		Id rndId = Id::Random().SetBits(0, mDepth, 0);
+		return (rndId | prefix) ^ mLocalId;
+	}
+
+	XList<Id> GetRefreshList() {
+		XList<Id> refreshList;
+		for (int i=1; i<KADEMLIA_ID_SIZE; i++) {
+			Id prefix = Id::PowerOfTwo(i);
+			Id rndId = Id::Random().SetBits(0, i, 0);
+			refreshList.Append((rndId | prefix) ^ mLocalId);
+		}
+		return refreshList;
+	}
+
+	bool AddNode(const Contact& newNode) {
+		return AddNode(newNode, newNode.mId ^ mLocalId);
+	}
+
+	bool RemoveNode(const Id& id) {
+		return RemoveNode(id, id ^ mLocalId);
+	}
+
+	XList<const Contact*> FindClosest(const Id& id, unsigned qty) const {
+		return FindClosest(id, id ^ mLocalId, qty);
+	}
+
 	XList<const Contact*> GetContacts() const {
 		XList<const Contact*> result;
 		if (IsBucket()) {
@@ -230,8 +257,31 @@ public:
 		}
 	}
 
-private:
+	void PrintDot(std::ostream& s) const {
+		if (IsBucket()) {
+			s << '"' << this << '"';
+			s << " [shape=record, label=\"{";
 
+			s << "{" << mIndex.ToString() << "|" << mDepth << "|" << mContacts.Count()  << "}";
+			for (typename ContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
+				s << "|{" << (mContacts[it].mId ^ mLocalId).ToString() << "|" << mContacts[it].mAddr.ToString() << "}";
+			}
+			s << "|{------|------}";
+			for (typename ContactList::It it = mCache.First(); it != mCache.End(); ++it) {
+				s << "|{" << (mCache[it].mId ^ mLocalId).ToString() << "|" << mCache[it].mAddr.ToString() << "}";
+			}
+			s << "}\"]" << std::endl;
+		} else {
+			s << '"' << this << '"' << " [label=" << this->mDepth << "]" << std::endl;
+
+			s << '"' << this << '"' << "-> \"" << m0 << "\" [label=0]" << std::endl;
+			m0->PrintDot(s);
+			s << '"' << this << '"' << "-> \"" << m1 << "\" [label=1]" << std::endl;
+			m1->PrintDot(s);
+		}
+	}
+
+private:
 	/**
      * The depth in the tree.
      * Also the number of common most significant bits.
@@ -245,13 +295,13 @@ private:
      * Also the range: range = [mIndex*rangeSize; mIndex*(rangeSize+1))
      **/
 	Id			mIndex;
+	const Id	mLocalId;
 
 	TKadRtNode* m0;
 	TKadRtNode* m1;
 	ContactList mContacts;
 	ContactList mCache;
 	XPlatDateTime mLastLookup;
-
 };
 
 typedef TKadRtNode<XSockAddr> KadRtNode;

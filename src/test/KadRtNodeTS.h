@@ -11,7 +11,7 @@ class KadRtNodeTS: public CxxTest::TestSuite
 public:
 
 	void testInit(void) {
-		TestRt rt;
+		TestRt rt(KadId::Zero());
 		TS_ASSERT_EQUALS(rt.CountCache(), 0);
 		TS_ASSERT_EQUALS(rt.CountContacts(), 0);
 		TS_ASSERT_EQUALS(rt.CountSpaces(), 0);
@@ -20,12 +20,11 @@ public:
 
 	void testRouting(void)
 	{
-		KadId lid = KadId::Random();
-		TestRt rt;
+		TestRt rt = KadId::Random();
 
 		for (int i=0; i<10000; i++) {
 			KadId cid = KadId::Random();
-			rt.AddNode(TestRt::Contact(cid, Void()), cid^lid);
+			rt.AddNode(TestRt::Contact(cid, Void()));
 			TS_ASSERT_EQUALS(rt.CountSpaces(), rt.CountBuckets()-1);
 		}
 
