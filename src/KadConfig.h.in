@@ -58,7 +58,7 @@
 /**
  * Log base exponent
  **/
-#define KADEMLIA_B 2
+#define KADEMLIA_B 3
 
 /**
  * Routing table levels allowed to split

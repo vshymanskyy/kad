@@ -51,21 +51,50 @@ public:
 				TKadId<32>::FromHex("248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"));
 	}
 
-	void testOperations()
+	void testPowerOfTwo()
 	{
 		TS_ASSERT(KadId::Zero().SetBit(KADEMLIA_ID_BITS-1) == KadId::PowerOfTwo(0));
 		TS_ASSERT(KadId::Zero().SetBit(KADEMLIA_ID_BITS-2) == KadId::PowerOfTwo(1));
-		TS_ASSERT(KadId::Zero().SetBit(KADEMLIA_ID_BITS-3) == KadId::PowerOfTwo(2));
+		TS_ASSERT(KadId::Zero().SetBit(0) == KadId::PowerOfTwo(KADEMLIA_ID_BITS-1));
+	}
 
-		TS_ASSERT(~TKadId<4>::FromHex("FFFFFFFF") == TKadId<4>::FromHex("00000000"));
-		TS_ASSERT(~TKadId<4>::FromHex("12345678") == TKadId<4>::FromHex("EDCBA987"));
-
+	void testBinary()
+	{
 		TS_ASSERT((TKadId<4>::FromHex("12345678") | TKadId<4>::FromHex("87654321")) == TKadId<4>::FromHex("97755779"));
 		TS_ASSERT((TKadId<4>::FromHex("12345678") & TKadId<4>::FromHex("87654321")) == TKadId<4>::FromHex("02244220"));
 		TS_ASSERT((TKadId<4>::FromHex("12345678") ^ TKadId<4>::FromHex("87654321")) == TKadId<4>::FromHex("95511559"));
-
-		TS_ASSERT(TKadId<4>::FromHex("12345678").ShiftLeft() == TKadId<4>::FromHex("2468ACF0"));
+		TS_ASSERT(~TKadId<4>::FromHex("12345678") == TKadId<4>::FromHex("0xEDCBA987"));
 	}
+
+	void testShl()
+	{
+		TS_ASSERT(TKadId<4>::FromHex("12345678").Shl() == TKadId<4>::FromHex("2468ACF0"));
+		TS_ASSERT(TKadId<16>::FromHex("12345678") << 7 == TKadId<16>::FromHex("91A2B3C00"));
+	}
+
+	void testAdd()
+	{
+		TS_ASSERT(TKadId<16>::FromHex("0").Add(TKadId<16>::FromHex("1")) == TKadId<16>::FromHex("1"));
+		TS_ASSERT(TKadId<16>::FromHex("1").Add(TKadId<16>::FromHex("1")) == TKadId<16>::FromHex("2"));
+		TS_ASSERT(TKadId<16>::FromHex("1").Add(TKadId<16>::FromHex("2")) == TKadId<16>::FromHex("3"));
+		TS_ASSERT(TKadId<16>::FromHex("1").Add(TKadId<16>::FromHex("3")) == TKadId<16>::FromHex("4"));
+		TS_ASSERT(TKadId<16>::FromHex("2").Add(TKadId<16>::FromHex("2")) == TKadId<16>::FromHex("4"));
+		TS_ASSERT(TKadId<16>::FromHex("3").Add(TKadId<16>::FromHex("1")) == TKadId<16>::FromHex("4"));
+
+		TS_ASSERT(TKadId<4>::FromHex("12345678") + TKadId<4>::FromHex("89ABCDEF") == TKadId<4>::FromHex("9BE02467"));
+	}
+
+	void testSub()
+	{
+		TS_ASSERT(TKadId<4>::FromHex("89ABCDEF") - TKadId<4>::FromHex("12345678") == TKadId<4>::FromHex("77777777"));
+		TS_ASSERT(TKadId<4>::FromHex("10000") - TKadId<4>::FromHex("FFF") == TKadId<4>::FromHex("F001"));
+	}
+
+	void testMul()
+	{
+		TS_ASSERT(TKadId<8>::FromHex("89ABCDEF") * TKadId<8>::FromHex("12345678") == TKadId<8>::FromHex("9CA39E0E242D208"));
+	}
+
 
 	void testCompare()
 	{

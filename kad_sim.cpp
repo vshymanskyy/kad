@@ -111,6 +111,9 @@ int PrintRt(int argc, char* argv[])
 	s.open("rt.dot", fstream::out);
 	mgrNode->DumpTableDot(s);
 	s.close();
+
+	system("dot -Tpng rt.dot -o rt.png");
+	system("gwenview rt.png");
 	return 0;
 }
 

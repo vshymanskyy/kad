@@ -10,7 +10,9 @@
 #include "XHelpers.h"
 #include "XLog.h"
 
-template <unsigned SIZE>
+#define bitsof(x) (sizeof(x)*8)
+
+template <unsigned ID_SIZE>
 class TKadId
 {
 	/*****************************************************************
@@ -18,7 +20,10 @@ class TKadId
 	 *****************************************************************/
 public:
 
-	enum { ID_SIZE = SIZE };
+	enum {
+		SIZE = ID_SIZE,
+		BIT_SIZE = (ID_SIZE*8)
+	};
 
 	static TKadId FromHex(const char* hexStr) {
 		TKadId result;
@@ -44,6 +49,12 @@ public:
 		return result;
 	}
 
+	static TKadId FromNumber(uint8_t n) {
+		TKadId result = TKadId::Zero();
+		result.mData[SIZE-1] = n;
+		return result;
+	}
+
 	static TKadId FromHash(const void* data, size_t len);
 
 	static TKadId FromHash(const char* str) { return FromHash(str, strlen(str)); }
@@ -59,87 +70,23 @@ public:
 		return result;
 	}
 
+	static TKadId One() {
+		TKadId result;
+		memset(result.mData, 0, SIZE);
+		result.SetBit(BIT_SIZE-1);
+		return result;
+	}
+
 	static TKadId PowerOfTwo(int power) {
 		TKadId result;
 		memset(result.mData, 0, SIZE);
-		result.SetBit(SIZE*8 - 1 - power);
+		result.SetBit(BIT_SIZE-1 - power);
 		return result;
 	}
 
 	/*****************************************************************
 	 * Operators
 	 *****************************************************************/
-public:
-	bool operator ==(const TKadId &id) const
-	{
-		return memcmp(mData, id.mData, SIZE) == 0;
-	}
-	bool operator !=(const TKadId &id) const
-	{
-		return memcmp(mData, id.mData, SIZE) != 0;
-	}
-	bool operator >=(const TKadId &id) const
-	{
-		return memcmp(mData, id.mData, SIZE) >= 0;
-	}
-	bool operator <=(const TKadId &id) const
-	{
-		return memcmp(mData, id.mData, SIZE) <= 0;
-	}
-	bool operator >(const TKadId &id) const
-	{
-		return memcmp(mData, id.mData, SIZE) > 0;
-	}
-	bool operator <(const TKadId &id) const
-	{
-		return memcmp(mData, id.mData, SIZE) < 0;
-	}
-
-	TKadId& operator ^=(const TKadId &id) {
-		for (unsigned i = 0; i < SIZE; i++) {
-			mData[i] ^= id.mData[i];
-		}
-		return *this;
-	}
-
-	TKadId& operator |=(const TKadId &id) {
-		for (unsigned i = 0; i < SIZE; i++) {
-			mData[i] |= id.mData[i];
-		}
-		return *this;
-	}
-
-	TKadId& operator &=(const TKadId &id) {
-		for (unsigned i = 0; i < SIZE; i++) {
-			mData[i] &= id.mData[i];
-		}
-		return *this;
-	}
-
-	TKadId operator ^(const TKadId &id) const {
-		TKadId result;
-		for (unsigned i = 0; i < SIZE; i++) {
-			result.mData[i] = mData[i] ^ id.mData[i];
-		}
-		return result;
-	}
-
-	TKadId operator |(const TKadId &id) const {
-		TKadId result;
-		for (unsigned i = 0; i < SIZE; i++) {
-			result.mData[i] = mData[i] | id.mData[i];
-		}
-		return result;
-	}
-
-	TKadId operator &(const TKadId &id) const {
-		TKadId result;
-		for (unsigned i = 0; i < SIZE; i++) {
-			result.mData[i] = mData[i] & id.mData[i];
-		}
-		return result;
-	}
-
 	TKadId operator ~() const {
 		TKadId result;
 		for (unsigned i = 0; i < SIZE; i++) {
@@ -148,41 +95,148 @@ public:
 		return result;
 	}
 
+	TKadId operator ^(const TKadId &id) const { TKadId result(*this); result ^= id; return result; }
+	TKadId operator |(const TKadId &id) const { TKadId result(*this); result |= id; return result; }
+	TKadId operator &(const TKadId &id) const { TKadId result(*this); result &= id; return result; }
+
+	TKadId operator +(const TKadId &id) const { return TKadId(*this).Add(id); }
+	TKadId operator -(const TKadId &id) const { return TKadId(*this).Sub(id); }
+	TKadId operator *(const TKadId &id) const { return TKadId(*this).Mul(id); }
+	TKadId operator /(const TKadId &id) const { return TKadId(*this).Div(id); }
+	TKadId operator <<(unsigned bits) const  { return TKadId(*this).Shl(bits); }
+	TKadId operator >>(unsigned bits) const  { return TKadId(*this).Shr(bits); }
+
+	TKadId& operator ^=(const TKadId &id) { for (unsigned i = 0; i < SIZE; i++) { mData[i] ^= id.mData[i]; } return *this; }
+	TKadId& operator |=(const TKadId &id) { for (unsigned i = 0; i < SIZE; i++) { mData[i] |= id.mData[i]; } return *this; }
+	TKadId& operator &=(const TKadId &id) { for (unsigned i = 0; i < SIZE; i++) { mData[i] &= id.mData[i]; } return *this; }
+
+	TKadId& operator +=(const TKadId &id) { return Add(id); }
+	TKadId& operator -=(const TKadId &id) { return Sub(id); }
+	TKadId& operator *=(const TKadId &id) { return Mul(id); }
+	TKadId& operator /=(const TKadId &id) { return Div(id); }
+	TKadId& operator <<=(unsigned bits) { return Shl(bits); }
+	TKadId& operator >>=(unsigned bits) { return Shr(bits);	}
+
+	bool operator ==(const TKadId &id) const { return memcmp(mData, id.mData, SIZE) == 0; }
+	bool operator !=(const TKadId &id) const { return memcmp(mData, id.mData, SIZE) != 0; }
+	bool operator >=(const TKadId &id) const { return memcmp(mData, id.mData, SIZE) >= 0; }
+	bool operator <=(const TKadId &id) const { return memcmp(mData, id.mData, SIZE) <= 0; }
+	bool operator > (const TKadId &id) const { return memcmp(mData, id.mData, SIZE) >  0; }
+	bool operator < (const TKadId &id) const { return memcmp(mData, id.mData, SIZE) <  0; }
+
 	/*****************************************************************
 	 * Methods
 	 *****************************************************************/
-	TKadId& ShiftLeft() {
-		uint8_t* byte = mData;
-		for (int size = SIZE; size--; ++byte) {
-			unsigned char bit = 0;
-			if (size) {
-				bit = byte[1] & (1 << (8 - 1)) ? 1 : 0;
-			}
-			byte[0] <<= 1;
-			byte[0] |= bit;
-		}
-		return *this;
-	}
 
-	TKadId& ShiftLeft(unsigned uBits)
+	TKadId& Add(const TKadId& uValue)
 	{
-		// TODO: Optimize
-		for (int i=0; i<uBits; ++i) {
-			ShiftLeft();
+		if (uValue.IsZero())
+			return *this;
+		int16_t iSum = 0;
+		for (int iIndex=SIZE-1; iIndex>=0; iIndex--)
+		{
+			iSum = iSum + mData[iIndex] + uValue.mData[iIndex];
+			mData[iIndex] = (uint8_t)iSum;
+			iSum >>= bitsof(mData[0]);
 		}
 		return *this;
 	}
 
+	TKadId& Sub(const TKadId& uValue)
+	{
+		if (uValue.IsZero())
+			return *this;
+		int16_t iSum = 0;
+		for (int iIndex=SIZE-1; iIndex>=0; iIndex--)
+		{
+			iSum = iSum + mData[iIndex] - uValue.mData[iIndex];
+			mData[iIndex] = (uint8_t)iSum;
+			iSum >>= bitsof(mData[0]);
+		}
+		return *this;
+	}
+
+	TKadId& Mul(const TKadId& uValue)
+	{
+		TKadId ret;
+		int16_t carry=0;
+		uint8_t mat[2*SIZE+1][2*SIZE]={0};
+		for(int i=SIZE-1;i>=0;i--){
+			for(int j=SIZE-1;j>=0;j--){
+				carry += mData[i]*uValue.mData[j];
+				if(carry < 10){
+					mat[i][j-(SIZE-1-i)]=carry;
+					carry=0;
+				}
+				else{
+					mat[i][j-(SIZE-1-i)]=carry % 0x100;
+					carry=carry / 0x100;
+				}
+			}
+		}
+		for(int i=1;i<SIZE+1;i++){
+			for(int j=SIZE-1;j>=0;j--){
+				carry += mat[i][j]+mat[i-1][j];
+				if(carry < 10){
+					mat[i][j]=carry;
+					carry=0;
+				} else{
+					mat[i][j]=carry % 0x100;
+					carry=carry / 0x100;
+				}
+			}
+		}
+		for(int i=0;i<SIZE;i++)
+			ret.mData[i]=mat[SIZE][i];
+
+		*this = ret;
+		return *this;
+	}
+
+	TKadId& Div(const TKadId& uValue)
+	{
+		X_FATAL("Not implemented");
+	}
+
+	TKadId& Shl(unsigned uBits = 1)
+	{
+		if ((uBits == 0) || IsZero()) {
+			return *this;
+		}
+
+		if (uBits >= BIT_SIZE) {
+			*this = Zero();
+			return *this;
+		}
+
+		TKadId uResult = Zero();
+
+		uint16_t iShifted = 0;
+		int iIndexShift = (int)uBits / bitsof(iShifted);
+
+		for (int iIndex=SIZE-1; iIndex>=iIndexShift; iIndex--) {
+			iShifted += ((uint16_t)mData[iIndex]) << (uBits % bitsof(iShifted));
+			uResult.mData[iIndex-iIndexShift] = (uint8_t)iShifted;
+			iShifted = iShifted >> bitsof(mData[0]);
+		}
+		*this = uResult;
+		return *this;
+	}
+
+	TKadId& Shr(unsigned uBits = 1)
+	{
+		X_FATAL("Not implemented");
+	}
 
 	bool GetBit(unsigned bit) const {
-		X_ASSERT(bit < SIZE*8);
+		X_ASSERT(bit < BIT_SIZE);
 		const int i = bit / 8;
 		const int shift = 7 - (bit % 8);
 		return ((mData[i] >> shift) & 1);
 	}
 
 	TKadId& SetBit(unsigned bit, bool val = true) {
-		X_ASSERT(bit < SIZE*8);
+		X_ASSERT(bit < BIT_SIZE);
 		const int i = bit / 8;
 		const int shift = 7 - (bit % 8);
 		mData[i] |= (1 << shift);
@@ -199,8 +253,9 @@ public:
 		return *this;
 	}
 
-	TKadId& SwapBit(unsigned bit) {
-		X_ASSERT(bit < SIZE*8);
+	TKadId& SwapBit(unsigned bit)
+	{
+		X_ASSERT(bit < BIT_SIZE);
 		int i = bit / 8;
 		int shift = 7 - (bit % 8);
 		if ((mData[i] >> shift) & 1) {
@@ -212,7 +267,8 @@ public:
 		return *this;
 	}
 
-	bool IsZero() const {
+	bool IsZero() const
+	{
 		for (unsigned i = 0; i < SIZE; i++) {
 			if (mData[i])
 				return false;
@@ -222,7 +278,8 @@ public:
 
 	// returns n in: 2^n <= distance(n1, n2) < 2^(n+1)
 	// useful for finding out which bucket a node belongs to
-	unsigned DistanceTo(const TKadId& id) const {
+	unsigned DistanceTo(const TKadId& id) const
+	{
 		for (unsigned i = 0; i < SIZE; ++i) {
 			if (const uint8_t t = mData[i] ^ id.mData[i]) {
 				// Found non-matching byte, find exact bit
@@ -247,7 +304,8 @@ public:
 	const uint8_t* Data() const { return mData; }
 	uint8_t* Data() { return mData; }
 
-	XString ToString() const {
+	XString ToString() const
+	{
 		XString result;
 #ifdef KADEMLIA_DBG_BIN_ID
 		for (unsigned i = 0; i < SIZE*8; i++) {

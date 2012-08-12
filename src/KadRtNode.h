@@ -24,7 +24,7 @@ private:
 	typedef XList<Contact> ContactList;
 
 private:
-	TKadRtNode(const Id& local, unsigned depth, const Id& index)
+	TKadRtNode(const Id& local, unsigned depth, unsigned index)
 		: mDepth(depth), mIndex(index), mLocalId(local), m0(NULL), m1(NULL)
 	{
 	}
@@ -42,7 +42,7 @@ private:
 			return false;
 		}
 
-		return mDepth < KADEMLIA_RT_BASE || mIndex < Id::PowerOfTwo(mDepth % KADEMLIA_B);
+		return mDepth < KADEMLIA_RT_BASE || Id::FromNumber(mIndex) < Id::PowerOfTwo(mDepth % KADEMLIA_B);
 	}
 
 	bool Split(const Id& localId) {
@@ -55,11 +55,8 @@ private:
 			return false;
 		}
 
-		Id newIndex = mIndex;
-		newIndex.ShiftLeft();
-
-		m0 = new TKadRtNode(mLocalId, mDepth + 1, newIndex);
-		m1 = new TKadRtNode(mLocalId, mDepth + 1, newIndex | Id::PowerOfTwo(0));
+		m0 = new TKadRtNode(mLocalId, mDepth + 1, mIndex << 1);
+		m1 = new TKadRtNode(mLocalId, mDepth + 1, (mIndex << 1) + 1);
 		X_ASSERT(m0);
 		X_ASSERT(m1);
 
@@ -168,7 +165,7 @@ private:
 public:
 
 	TKadRtNode(const Id& local)
-		: mDepth(0), mIndex(Id::Zero()), mLocalId(local), m0(NULL), m1(NULL)
+		: mDepth(0), mIndex(0), mLocalId(local), m0(NULL), m1(NULL)
 	{
 	}
 
@@ -185,7 +182,7 @@ public:
 	const Id& LocalId() const { return mLocalId; }
 
 	Id RandomId() const {
-		Id prefix = Id(mIndex).ShiftLeft(KADEMLIA_ID_BITS - mDepth);
+		Id prefix = Id(mIndex).Shl(KADEMLIA_ID_BITS - mDepth);
 		Id rndId = Id::Random().SetBits(0, mDepth, 0);
 		return (rndId | prefix) ^ mLocalId;
 	}
@@ -258,21 +255,37 @@ public:
 	}
 
 	void PrintDot(std::ostream& s) const {
+		TKadId<Id::SIZE+1> rangeSize = TKadId<Id::SIZE+1>::PowerOfTwo(Id::BIT_SIZE-mDepth);
+		TKadId<Id::SIZE+1> index = TKadId<Id::SIZE+1>::FromNumber(mIndex);
+
 		if (IsBucket()) {
 			s << '"' << this << '"';
-			s << " [shape=record, label=\"{";
+			s << " [shape=record, style=filled, fillcolor=skyblue, label=\"{";
+			s << "{" << index.ToString() << "|" << mDepth  << "}";
 
-			s << "{" << mIndex.ToString() << "|" << mDepth << "|" << mContacts.Count()  << "}";
+			s  << "|{size:" << rangeSize.ToString() << "}";
+			s  << "|{[" << (rangeSize*index).ToString() << "; " << (rangeSize*index+rangeSize).ToString() << ")}";
+
+			s << "|{Contacts (" << mContacts.Count() << ")}";
 			for (typename ContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
-				s << "|{" << (mContacts[it].mId ^ mLocalId).ToString() << "|" << mContacts[it].mAddr.ToString() << "}";
+				s << "|{" << (mContacts[it].mId).ToString() << "|" << mContacts[it].mAddr.ToString() << "}";
 			}
-			s << "|{------|------}";
-			for (typename ContactList::It it = mCache.First(); it != mCache.End(); ++it) {
-				s << "|{" << (mCache[it].mId ^ mLocalId).ToString() << "|" << mCache[it].mAddr.ToString() << "}";
+			if (mCache.Count()) {
+				s << "|{Cache (" << mCache.Count() << ")}";
+				for (typename ContactList::It it = mCache.First(); it != mCache.End(); ++it) {
+					s << "|{" << (mCache[it].mId).ToString() << "|" << mCache[it].mAddr.ToString() << "}";
+				}
 			}
 			s << "}\"]" << std::endl;
 		} else {
-			s << '"' << this << '"' << " [label=" << this->mDepth << "]" << std::endl;
+			s << '"' << this << '"' << " [shape=record, style=filled, fillcolor=springgreen, label=\"{";
+			s << "{" << index.ToString() << "|" << mDepth  << "}";
+
+			s  << "|{local:" << mLocalId.ToString() << "}";
+			s  << "|{size:" << rangeSize.ToString() << "}";
+			s  << "|{[" << (rangeSize*index).ToString() << "; " << (rangeSize*index+rangeSize).ToString() << ")}";
+
+			s << "}\"]" << std::endl;
 
 			s << '"' << this << '"' << "-> \"" << m0 << "\" [label=0]" << std::endl;
 			m0->PrintDot(s);
@@ -292,9 +305,9 @@ private:
 	/**
      * The number of spaces between this space and the local node.
      * Also the number of common most significant bits.
-     * Also the range: range = [mIndex*rangeSize; mIndex*(rangeSize+1))
+     * Also the range: range = [mIndex*rangeSize; (mIndex+1)*rangeSize)
      **/
-	Id			mIndex;
+	unsigned	mIndex;
 	const Id	mLocalId;
 
 	TKadRtNode* m0;
