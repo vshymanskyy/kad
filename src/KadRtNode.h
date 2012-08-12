@@ -34,18 +34,12 @@ private:
 	bool IsBucket() const { return !(m0 || m1); }
 
 	bool IsSplittable() const {
-		if (mDepth >= (KADEMLIA_ID_BITS-1)) {
-			return false;
-		}
-
-		if (mContacts.Count() < KADEMLIA_BUCKET_SIZE) {
-			return false;
-		}
-
-		return mDepth < KADEMLIA_RT_BASE || Id::FromNumber(mIndex) < Id::PowerOfTwo(mDepth % KADEMLIA_B);
+		return (mDepth < (KADEMLIA_ID_BITS-1)) &&
+				(mContacts.Count() >= KADEMLIA_BUCKET_SIZE) &&
+				(mDepth < KADEMLIA_RT_BASE || Id(mIndex) < Id::PowerOfTwo(mDepth % KADEMLIA_B));
 	}
 
-	bool Split(const Id& localId) {
+	bool Split() {
 		X_ASSERT(!m0);
 		X_ASSERT(!m1);
 
@@ -60,12 +54,21 @@ private:
 		X_ASSERT(m0);
 		X_ASSERT(m1);
 
-		const ContactList& lst = mContacts;
-		for (typename ContactList::It it = lst.First(); it != lst.End(); ++it) {
-			Closest(localId ^ lst[it].mId)->mContacts.Append(lst[it]);
+		for (typename ContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
+			Closest(mLocalId ^ mContacts[it].mId)->mContacts.Append(mContacts[it]);
+		}
+
+		for (typename ContactList::It it = mCache.First(); it != mCache.End(); ++it) {
+			TKadRtNode* closest = Closest(mLocalId ^ mCache[it].mId);
+			if (closest->mContacts.Count() < KADEMLIA_BUCKET_SIZE) {
+				closest->mContacts.Append(mCache[it]);
+			} else if (closest->mCache.Count() < KADEMLIA_CACHE_SIZE) {
+				closest->mCache.Append(mCache[it]);
+			}
 		}
 
 		mContacts.Clear();
+		mCache.Clear();
 
 		KAD_STATS.mSplitDoneQty++;
 		return true;
@@ -90,7 +93,7 @@ private:
 			KAD_STATS.mAddNewQty++;
 
 			return true;
-		} else if (Split(newNode.mId ^ d)) {
+		} else if (Split()) {
 			return AddNode(newNode, d);
 		} else {
 			// TODO: Check cache order
@@ -256,15 +259,14 @@ public:
 
 	void PrintDot(std::ostream& s) const {
 		TKadId<Id::SIZE+1> rangeSize = TKadId<Id::SIZE+1>::PowerOfTwo(Id::BIT_SIZE-mDepth);
-		TKadId<Id::SIZE+1> index = TKadId<Id::SIZE+1>::FromNumber(mIndex);
 
 		if (IsBucket()) {
 			s << '"' << this << '"';
 			s << " [shape=record, style=filled, fillcolor=skyblue, label=\"{";
-			s << "{" << index.ToString() << "|" << mDepth  << "}";
+			s << "{index:" << mIndex << "|depth:" << mDepth  << "}";
 
 			s  << "|{size:" << rangeSize.ToString() << "}";
-			s  << "|{[" << (rangeSize*index).ToString() << "; " << (rangeSize*index+rangeSize).ToString() << ")}";
+			s  << "|{[" << (rangeSize*mIndex).ToString() << "; " << (rangeSize*(mIndex+1)).ToString() << ")}";
 
 			s << "|{Contacts (" << mContacts.Count() << ")}";
 			for (typename ContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
@@ -279,11 +281,11 @@ public:
 			s << "}\"]" << std::endl;
 		} else {
 			s << '"' << this << '"' << " [shape=record, style=filled, fillcolor=springgreen, label=\"{";
-			s << "{" << index.ToString() << "|" << mDepth  << "}";
+			s << "{index:" << mIndex << "|depth:" << mDepth  << "}";
 
 			s  << "|{local:" << mLocalId.ToString() << "}";
 			s  << "|{size:" << rangeSize.ToString() << "}";
-			s  << "|{[" << (rangeSize*index).ToString() << "; " << (rangeSize*index+rangeSize).ToString() << ")}";
+			s  << "|{[" << (rangeSize*mIndex).ToString() << "; " << (rangeSize*(mIndex+1)).ToString() << ")}";
 
 			s << "}\"]" << std::endl;
 

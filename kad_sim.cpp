@@ -120,11 +120,15 @@ int PrintRt(int argc, char* argv[])
 static
 int TestRT(int argc, char* argv[])
 {
-	KadRtNode rt(KadId::Random());
+	KadRtNode rt(0);
 
 	for (int i=0; i<100000; i++) {
 		rt.AddNode(KadRtNode::Contact(KadId::Random(), XSockAddr::Random()));
 	}
+
+	/*for (int i=0; i<=0xFFFF; i++) {
+		rt.AddNode(KadRtNode::Contact(i, XSockAddr::Random()));
+	}*/
 
 	std::fstream s;
 	s.open("/tmp/rt.dot", fstream::out);

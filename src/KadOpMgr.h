@@ -350,7 +350,7 @@ private:
 		case KadMsg::KAD_MSG_REMOVE_RSP: {
 			mLock.Lock();
 			AddNode(KadContact(req->NodeId(), from));
-			if (KadMsgId::Zero() == req->MsgId()) {
+			if (KadMsgId() == req->MsgId()) {
 				mLock.Unlock();
 				break;
 			}
@@ -372,13 +372,13 @@ private:
 	KadMsgId GenId() const {
 		KadMsgId id = KadMsgId::Random();
 		for (int gen = 0; gen < 100; gen++) {
-			if (KadMsgId::Zero() != id && mOps.End() == mOps.FindAfter(mOps.First(), KadOperation::SelectById(id))) {
+			if (!id.IsZero() && mOps.End() == mOps.FindAfter(mOps.First(), KadOperation::SelectById(id))) {
 				return id;
 			}
 			id = KadMsgId::Random();
 		}
 		X_FATAL("Could not find unused transaction id");
-		return KadMsgId::Zero();
+		return KadMsgId();
 	}
 
 	template <typename T>
@@ -422,7 +422,7 @@ public:
 
 	void Join(const XList<XSockAddr>& bsp) {
 		for (XList<XSockAddr>::It it = bsp.First(); it != bsp.End(); ++it) {
-			SendStructTo(KadMsgPing(KadMsgId::Zero(), LocalId()), bsp[it]);
+			SendStructTo(KadMsgPing(KadMsgId(), LocalId()), bsp[it]);
 		}
 		XThread::SleepMs(KADEMLIA_TIMEOUT_RESPONCE);
 		// Perform a node lookup for your own LocalId

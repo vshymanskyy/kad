@@ -11,7 +11,7 @@ class KadRtNodeTS: public CxxTest::TestSuite
 public:
 
 	void testInit(void) {
-		TestRt rt(KadId::Zero());
+		TestRt rt(KadId("0"));
 		TS_ASSERT_EQUALS(rt.CountCache(), 0);
 		TS_ASSERT_EQUALS(rt.CountContacts(), 0);
 		TS_ASSERT_EQUALS(rt.CountSpaces(), 0);

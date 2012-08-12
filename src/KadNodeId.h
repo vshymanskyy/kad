@@ -25,34 +25,38 @@ public:
 		BIT_SIZE = (ID_SIZE*8)
 	};
 
-	static TKadId FromHex(const char* hexStr) {
-		TKadId result;
-		memset(result.mData, 0, SIZE);
-		const char* strBuff = hexStr+strlen(hexStr);
+	TKadId () {
+		memset(mData, 0, SIZE);
+	}
+
+	explicit TKadId (const char* str) {
+		memset(mData, 0, SIZE);
+		const char* strBuff = str+strlen(str);
 
 	    for (int i = SIZE-1; i>=0; i--) {
 	        unsigned u;
-	    	if (strBuff-hexStr >= 2 && sscanf(strBuff-2, "%2x", &u) == 1) {
-	    		result.mData[i] = u & 0xFF;
+	    	if (strBuff-str >= 2 && sscanf(strBuff-2, "%2x", &u) == 1) {
+	    		mData[i] = u & 0xFF;
 	    		strBuff -= 2;
-	    	} else if (strBuff-hexStr >= 2 && sscanf(strBuff-1, "%1x", &u) == 1) {
-	    		result.mData[i] = u & 0xFF;
+	    	} else if (strBuff-str >= 2 && sscanf(strBuff-1, "%1x", &u) == 1) {
+	    		mData[i] = u & 0xFF;
 	    		break;
-	    	} else if (strBuff-hexStr == 1 && sscanf(strBuff-1, "%1x", &u) == 1) {
-	    		result.mData[i] = u & 0xFF;
+	    	} else if (strBuff-str == 1 && sscanf(strBuff-1, "%1x", &u) == 1) {
+	    		mData[i] = u & 0xFF;
 	    		break;
 	    	} else {
 	    		break;
 	    	}
 	    }
-
-		return result;
 	}
 
-	static TKadId FromNumber(uint8_t n) {
-		TKadId result = TKadId::Zero();
-		result.mData[SIZE-1] = n;
-		return result;
+	TKadId (uint64_t num) {
+		// TODO: Byte-order agnostic
+		memset(mData, 0, SIZE);
+		uint8_t* numBytes = (uint8_t*)&num;
+		for (unsigned i=0; i<SIZE && i<sizeof(num); i++) {
+			mData[SIZE-1-i] = numBytes[i];
+		}
 	}
 
 	static TKadId FromHash(const void* data, size_t len);
@@ -62,19 +66,6 @@ public:
 	static TKadId Random() {
 		XString unique = XString::Format("%d-%d", RandRange(0, 10000), RandRange(0, 10000));
 		return TKadId::FromHash((char*)unique, unique.Length());
-	}
-
-	static TKadId Zero() {
-		TKadId result;
-		memset(result.mData, 0, SIZE);
-		return result;
-	}
-
-	static TKadId One() {
-		TKadId result;
-		memset(result.mData, 0, SIZE);
-		result.SetBit(BIT_SIZE-1);
-		return result;
 	}
 
 	static TKadId PowerOfTwo(int power) {
@@ -205,11 +196,11 @@ public:
 		}
 
 		if (uBits >= BIT_SIZE) {
-			*this = Zero();
+			*this = TKadId();
 			return *this;
 		}
 
-		TKadId uResult = Zero();
+		TKadId uResult;
 
 		uint16_t iShifted = 0;
 		int iIndexShift = (int)uBits / bitsof(iShifted);

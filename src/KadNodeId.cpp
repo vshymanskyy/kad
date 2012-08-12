@@ -59,14 +59,12 @@ TKadId<16> TKadId<16>::FromHash(const void* data, size_t len)
 template<unsigned N>
 TKadId<N> TKadId<N>::FromHash(const void* data, size_t len)
 {
-	union {
-		TKadId	ids[32/N];
-		uint8_t buff[32];
-	};
-	CryptoPP::SHA256 sha;
-	sha.CalculateDigest((uint8_t*)buff, (uint8_t*)data, len);
+	TKadId	ids[32/N];
 
-	TKadId result = TKadId::Zero();
+	CryptoPP::SHA256 sha;
+	sha.CalculateDigest((uint8_t*)ids, (uint8_t*)data, len);
+
+	TKadId result;
 	for (unsigned i = 0; i<X_COUNTOF(ids); ++i) {
 		result ^= ids[i];
 	}
@@ -78,6 +76,9 @@ TKadId<1> TKadId<1>::FromHash(const void* data, size_t len);
 
 template
 TKadId<2> TKadId<2>::FromHash(const void* data, size_t len);
+
+template
+TKadId<3> TKadId<3>::FromHash(const void* data, size_t len);
 
 template
 TKadId<4> TKadId<4>::FromHash(const void* data, size_t len);

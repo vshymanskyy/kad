@@ -58,17 +58,17 @@
 /**
  * Log base exponent
  **/
-#define KADEMLIA_B 3
+#define KADEMLIA_B 2
 
 /**
  * Routing table levels allowed to split
  **/
-#define KADEMLIA_RT_BASE 2
+#define KADEMLIA_RT_BASE 3
 
 /**
- * K-Bucket size (K).
+ * K-Bucket size (K)
  **/
-#define KADEMLIA_BUCKET_SIZE 20
+#define KADEMLIA_BUCKET_SIZE 16
 
 /**
  * Size of replacement cache.
