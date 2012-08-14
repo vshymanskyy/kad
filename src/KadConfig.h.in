@@ -43,7 +43,7 @@
  * If no reply received from a node in this period (ms)
  * consider the node unresponsive.
  **/
-#define KADEMLIA_TIMEOUT_RESPONCE 10
+#define KADEMLIA_TIMEOUT_RESPONSE 10
 
 /**
  * Timeout for performing an operation (ms)
@@ -53,7 +53,7 @@
 /**
  * Maximum number of concurrent messages in transit.
  **/
-#define KADEMLIA_ALPHA 3
+#define KADEMLIA_ALPHA 4
 
 /**
  * Log base exponent

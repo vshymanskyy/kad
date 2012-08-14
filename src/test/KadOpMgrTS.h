@@ -30,20 +30,37 @@ public:
 		}
 
 		void test() {
-			mPonged = false;
-			mgr1.Ping(XSockAddr("127.0.0.1:3002"), KadOpMgr::KadPing::Handler(this, &PingTester::pong));
-			XThread::SleepMs(1100);
-			TS_ASSERT(mPonged);
+			mPonged1 = false;
+			mPonged2 = false;
+			mgr1.SendPing(XSockAddr("127.0.0.1:3002"), KadOpMgr::KadRspHandler::Handler(this, &PingTester::pong1));
+			mgr2.SendPing(XSockAddr("127.0.0.1:3001"), KadOpMgr::KadRspHandler::Handler(this, &PingTester::pong2));
+			XThread::SleepMs(10);
+			TS_ASSERT(mPonged1);
+			TS_ASSERT(mPonged2);
 		}
 
 	private:
-		void pong() {
-			mPonged = true;
+		void pong1(const KadMsgId&, const KadMsgRsp* rsp) {
+			if (rsp) {
+				mPonged1 = true;
+				LOG(NULL, "PONG1");
+			} else {
+				LOG(NULL, "PONG1 TIMEOUT");
+			}
+		}
+		void pong2(const KadMsgId&, const KadMsgRsp* rsp) {
+			if (rsp) {
+				mPonged2 = true;
+				LOG(NULL, "PONG2");
+			} else {
+				LOG(NULL, "PONG2 TIMEOUT");
+			}
 		}
 	private:
 		KadOpMgr mgr1;
 		KadOpMgr mgr2;
-		bool mPonged;
+		bool mPonged1;
+		bool mPonged2;
 	};
 
 

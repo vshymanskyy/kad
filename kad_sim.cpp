@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
 {
 	RandInit();
 
-	XLogManager::Get().SetDefaultLogger(new XFileLogger("log.txt"));
+	//XLogManager::Get().SetDefaultLogger(new XFileLogger("log.txt"));
 
 	XShell sh("sim");
 
