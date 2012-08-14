@@ -97,6 +97,7 @@ private:
 		KadIterativeFindOp(KadOpMgr* mgr, const KadId& key, Handler h)
 			: mHandler(h)
 			, mKey(key)
+			, mPendingQty(0)
 			, mMgr(mgr)
 		{
 			XList<const KadContact*> lst = mMgr->FindClosest(mKey, KADEMLIA_BUCKET_SIZE);
@@ -116,7 +117,7 @@ private:
 				LOG_WARN(mMgr->mLog, "Zero msgId event");
 				return;
 			}
-			mPendingQty--;
+
 			XList<Contact>::It rspContact = mList.First();
 			for (; rspContact!=mList.End(); ++rspContact) {
 				if (mList[rspContact].mMsg == msgId) {
@@ -124,15 +125,14 @@ private:
 				}
 			}
 
-			if (rspContact == mList.End()) {
-				LOG_WARN(mMgr->mLog, "Response from unknown contact");
-				return;
-			}
+			mPendingQty--;
 
 			if (!rsp) {
-				mList[rspContact].GotTimeout();
-				if (mList[rspContact].IsStale()) {
-					mList.Remove(rspContact);
+				if (rspContact != mList.End()) {
+					mList[rspContact].GotTimeout();
+					if (mList[rspContact].IsStale()) {
+						mList.Remove(rspContact);
+					}
 				}
 				int sentQty = Send(1);//KADEMLIA_ALPHA-mPendingQty);
 				if (sentQty) {
@@ -144,7 +144,9 @@ private:
 
 				return;
 			} else {
-				mList[rspContact].GotResponse();
+				if (rspContact != mList.End()) {
+					mList[rspContact].GotResponse();
+				}
 				const KadMsgFindRsp* findRsp = (const KadMsgFindRsp*)rsp;
 
 				// Merge lists
@@ -228,6 +230,8 @@ private:
 		}*/
 
 		int Send(int qty) {
+			X_ASSERT_GE(qty, 0, "%d");
+			X_ASSERT_LE(qty, KADEMLIA_ALPHA, "%d");
 			int sent = 0;
 
 			for (int i=0; i<qty; i++) {
@@ -277,6 +281,11 @@ private:
 		if (RandRange(0,100) < 10) return;
 
 		LOG_DEEP(mLog, "<< " << *req);
+
+		if (req->NodeId() == LocalId()) {
+			LOG_WARN(mLog, "Message from self -> dropped");
+			return;
+		}
 
 		mLock.Lock();
 		AddNode(KadContact(req->NodeId(), from));

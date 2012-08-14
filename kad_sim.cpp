@@ -15,10 +15,7 @@ XList<KadOpMgr*> allNodes;
 static
 int SaveDot(int argc, char* argv[])
 {
-	if (argc < 2) {
-		return 1;
-	}
-	if (FILE* f=fopen(argv[1],"w")) {
+	if (FILE* f=fopen("/tmp/nodes.dot","w")) {
 		fprintf(f,
 			"digraph Kad {\n"
 			"  graph [overlap=false, overlap_scaling=2, sep=\"+20\", splines=true];\n"
@@ -32,6 +29,9 @@ int SaveDot(int argc, char* argv[])
 		}
 		fprintf(f, "}\n");
 		fclose(f);
+
+		system("sfdp -Tpng /tmp/nodes.dot -o /tmp/nodes.png");
+		system("gwenview /tmp/nodes.png");
 	}
 	return 0;
 }
