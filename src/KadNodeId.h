@@ -26,11 +26,11 @@ public:
 	};
 
 	TKadId () {
-		memset(mData, 0, SIZE);
+		Clear();
 	}
 
 	explicit TKadId (const char* str) {
-		memset(mData, 0, SIZE);
+		Clear();
 		const char* strBuff = str+strlen(str);
 
 	    for (int i = SIZE-1; i>=0; i--) {
@@ -51,8 +51,8 @@ public:
 	}
 
 	TKadId (uint64_t num) {
+		Clear();
 		// TODO: Byte-order agnostic
-		memset(mData, 0, SIZE);
 		uint8_t* numBytes = (uint8_t*)&num;
 		for (unsigned i=0; i<SIZE && i<sizeof(num); i++) {
 			mData[SIZE-1-i] = numBytes[i];
@@ -256,6 +256,10 @@ public:
 			mData[i] |= (1 << shift);
 		}
 		return *this;
+	}
+
+	void Clear() {
+		memset(mData, 0, SIZE);
 	}
 
 	bool IsZero() const

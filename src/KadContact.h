@@ -3,36 +3,52 @@
 
 #include "KadConfig.h"
 #include "KadNodeId.h"
-#include <net/XSockAddr.h>
+#include <XList.h>
 
-template <unsigned ID_SIZE, typename ADDR>
-struct TKadContact
+#include <net/XSockAddr.h>
+#include <tr1/memory>
+
+///template <unsigned ID_SIZE>
+struct KadContact
 {
-	TKadId<ID_SIZE> mId;
-	ADDR		mAddr;
+	KadId		mId;
+	XSockAddr	mAddrExt;
+	//XSockAddr	mAddrInt;
+	//XSockAddr	mAddrSrv;
+
 	unsigned	mFailQty;
 	unsigned	mRTT;
+	//time		mFirstSeen;
+	//time		mLastSeen;
+	//float		mRPM;
 
-	TKadContact() {}
-
-	TKadContact(const TKadId<ID_SIZE>& id, const ADDR& extr)
+	KadContact(const KadId& id, const XSockAddr& extr)
 		: mId		(id)
-		, mAddr		(extr)
+		, mAddrExt	(extr)
 		, mFailQty	(0)
 		, mRTT		(0)
+	{
+	}
+
+	KadContact(const KadContact& c)
+		: mId		(c.mId)
+		, mAddrExt	(c.mAddrExt)
+		, mFailQty	(c.mFailQty)
+		, mRTT		(c.mRTT)
 	{
 	}
 
 	bool IsStale() const { return mFailQty >= KADEMLIA_STALE; }
 };
 
-typedef TKadContact<KADEMLIA_ID_SIZE, XSockAddr> KadContact;
+typedef std::tr1::shared_ptr<KadContact>	KadContactPtr;
+typedef XList<KadContactPtr>				KadContactList;
 
-template <unsigned ID_SIZE, typename ADDR>
+//template <unsigned ID_SIZE>
 inline
-const XLog::Stream& operator <<(const XLog::Stream& str, const TKadContact<ID_SIZE, ADDR>& c) {
+const XLog::Stream& operator <<(const XLog::Stream& str, const KadContact& c) {
 	return str << (c.IsStale()?"Stale contact {id: ":"Contact {id: ") << c.mId
-			<< " ext: " << c.mAddr.ToString()  << "}";
+			<< " ext: " << c.mAddrExt.ToString()  << "}";
 }
 
 #endif /* KAD_CONFIG_H_ */

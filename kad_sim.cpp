@@ -22,8 +22,8 @@ int SaveDot(int argc, char* argv[])
 			"  node [shape=record, height=.1];\n"
 		);
 		for (XList<KadOpMgr*>::It it=allNodes.First(); it!=allNodes.End(); ++it) {
-			XList<const KadContact*> contacts = allNodes[it]->GetContacts();
-			for (XList<const KadContact*>::It it2=contacts.First(); it2!=contacts.End(); ++it2) {
+			KadContactList contacts = allNodes[it]->GetContacts();
+			for (KadContactList::It it2=contacts.First(); it2!=contacts.End(); ++it2) {
 				fprintf(f, "  \"%s\" -> \"%s\";\n", (char*)(allNodes[it]->LocalId().ToString()), (char*)(contacts[it2]->mId.ToString()));
 			}
 		}
@@ -123,11 +123,11 @@ int TestRT(int argc, char* argv[])
 	KadRtNode rt(0);
 
 	for (int i=0; i<100000; i++) {
-		rt.AddNode(KadRtNode::Contact(KadId::Random(), XSockAddr::Random()));
+		rt.AddNode(KadContact(KadId::Random(), XSockAddr::Random()));
 	}
 
 	/*for (int i=0; i<=0xFFFF; i++) {
-		rt.AddNode(KadRtNode::Contact(i, XSockAddr::Random()));
+		rt.AddNode(KadContact(i, XSockAddr::Random()));
 	}*/
 
 	std::fstream s;

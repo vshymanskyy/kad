@@ -7,7 +7,7 @@
 class KadRtNodeTS: public CxxTest::TestSuite
 {
 	struct Void { };
-	typedef TKadRtNode<Void> TestRt;
+	typedef TKadRtNode TestRt;
 public:
 
 	void testInit(void) {
@@ -24,7 +24,7 @@ public:
 
 		for (int i=0; i<10000; i++) {
 			KadId cid = KadId::Random();
-			rt.AddNode(TestRt::Contact(cid, Void()));
+			rt.AddNode(KadContact(cid, XSockAddr::Random()));
 			TS_ASSERT_EQUALS(rt.CountSpaces(), rt.CountBuckets()-1);
 		}
 

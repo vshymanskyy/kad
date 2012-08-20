@@ -1,8 +1,6 @@
 #ifndef ROUTING_TABLE_H_
 #define ROUTING_TABLE_H_
 
-#include "KadConfig.h"
-#include "KadNodeId.h"
 #include "KadContact.h"
 #include "KadStats.h"
 
@@ -12,31 +10,25 @@
 #include "XLog.h"
 
 #include <iostream>
+#include <tr1/memory>
 
-template <typename ADDR>
 class TKadRtNode
 {
-public:
-	typedef TKadContact<KADEMLIA_ID_SIZE,ADDR> Contact;
-	typedef TKadId<KADEMLIA_ID_SIZE> Id;
 
 private:
-	typedef XList<Contact> ContactList;
-
-private:
-	TKadRtNode(const Id& local, unsigned depth, unsigned index)
+	TKadRtNode(const KadId& local, unsigned depth, unsigned index)
 		: mDepth(depth), mIndex(index), mLocalId(local), m0(NULL), m1(NULL)
 	{
 	}
 
-	TKadRtNode* Closest(const Id& d) const { return d.GetBit(mDepth) ? m1 : m0; }
-	TKadRtNode* Farthest(const Id& d) const { return d.GetBit(mDepth) ? m0 : m1; }
+	TKadRtNode* Closest(const KadId& d) const { return d.GetBit(mDepth) ? m1 : m0; }
+	TKadRtNode* Farthest(const KadId& d) const { return d.GetBit(mDepth) ? m0 : m1; }
 	bool IsBucket() const { return !(m0 || m1); }
 
 	bool IsSplittable() const {
 		return (mDepth < (KADEMLIA_ID_BITS-1)) &&
 				(mContacts.Count() >= KADEMLIA_BUCKET_SIZE) &&
-				(mDepth < KADEMLIA_RT_BASE || Id(mIndex) < Id::PowerOfTwo(mDepth % KADEMLIA_B));
+				(mDepth < KADEMLIA_RT_BASE || KadId(mIndex) < KadId::PowerOfTwo(mDepth % KADEMLIA_B));
 	}
 
 	bool Split() {
@@ -54,12 +46,12 @@ private:
 		X_ASSERT(m0);
 		X_ASSERT(m1);
 
-		for (typename ContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
-			Closest(mLocalId ^ mContacts[it].mId)->mContacts.Append(mContacts[it]);
+		for (typename KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
+			Closest(mLocalId ^ mContacts[it]->mId)->mContacts.Append(mContacts[it]);
 		}
 
-		for (typename ContactList::It it = mCache.First(); it != mCache.End(); ++it) {
-			TKadRtNode* closest = Closest(mLocalId ^ mCache[it].mId);
+		for (typename KadContactList::It it = mCache.First(); it != mCache.End(); ++it) {
+			TKadRtNode* closest = Closest(mLocalId ^ mCache[it]->mId);
 			if (closest->mContacts.Count() < KADEMLIA_BUCKET_SIZE) {
 				closest->mContacts.Append(mCache[it]);
 			} else if (closest->mCache.Count() < KADEMLIA_CACHE_SIZE) {
@@ -74,52 +66,58 @@ private:
 		return true;
 	}
 
-	bool AddNode(const Contact& newNode, const Id& d) {
+	KadContactPtr AddNode(const KadContact& newNode, const KadId& d) {
 		if (!IsBucket()) return Closest(d)->AddNode(newNode, d);
 
 		// Bucket found
-		typename ContactList::It c = FindNodeById(mContacts, newNode.mId);
+		typename KadContactList::It c = FindNodeById(mContacts, newNode.mId);
 		if (c != mContacts.End()) {
+			KadContactPtr node = mContacts[c];
 			// Node is already present, update the info
-			mContacts.Remove(c);		// TODO: Update data
-			mContacts.Append(newNode);
+			// TODO: Update data
+			mContacts.Append(mContacts.Remove(c));
 			KAD_STATS.mAddExistingQty++;
-			return true;
+			return node;
 		} else if (mContacts.Count() < KADEMLIA_BUCKET_SIZE) {
 			//LOG(NULL, "New node: " << newNode.mId);
 
+			// Make a copy
+			KadContactPtr node(new KadContact(newNode));
 			// Bucket is not full, insert the node
-			mContacts.Append(newNode);
+			mContacts.Append(node);
 			KAD_STATS.mAddNewQty++;
 
-			return true;
+			return node;
 		} else if (Split()) {
 			return AddNode(newNode, d);
 		} else {
 			// TODO: Check cache order
-			typename ContactList::It c2 = FindNodeById(mCache, newNode.mId);
+			KadContactList::It c2 = FindNodeById(mCache, newNode.mId);
 			if (c2 != mCache.End()) {
-				mCache.Remove(c2);		// TODO: Update data
-				mCache.Append(newNode);
-				return true;
+				KadContactPtr node = mCache[c2];
+				// TODO: Update data
+				mCache.Append(mCache.Remove(c2));
+				return node;
 			} else if (mCache.Count() < KADEMLIA_CACHE_SIZE) {
-				mCache.Append(newNode);
-				return true;
+				KadContactPtr node(new KadContact(newNode));
+				mCache.Append(node);
+				return node;
 			} else {
 				mCache.PopFront();
-				mCache.Append(newNode);
-				return true;
+				KadContactPtr node(new KadContact(newNode));
+				mCache.Append(node);
+				return node;
 			}
 		}
 
-		return false;
+		return KadContactPtr(new KadContact(newNode));
 	}
 
-	bool RemoveNode(const Id& id, const Id& d) {
+	bool RemoveNode(const KadId& id, const KadId& d) {
 		if (!IsBucket()) return Closest(d)->RemoveNode(id, d);
 
 		// Bucket found, check if node is present
-		typename ContactList::It it = FindNodeById(mContacts, id);
+		KadContactList::It it = FindNodeById(mContacts, id);
 		if (it != mContacts.End()) {
 			// Remove it
 			mContacts.Remove(it);
@@ -127,7 +125,7 @@ private:
 			return true;
 		} else {
 			// Look in mCache
-			typename ContactList::It it2 = FindNodeById(mCache, id);
+			KadContactList::It it2 = FindNodeById(mCache, id);
 			if (it2 != mCache.End()) {
 				mCache.Remove(it2);
 				return true;
@@ -136,26 +134,39 @@ private:
 		return false;
 	}
 
-	XList<const Contact*> FindClosest(const Id& id, const Id& d, unsigned qty) const {
+	KadContactPtr FindNode(const KadId& id, const KadId& d) const {
+		if (!IsBucket()) {
+			return Closest(d)->FindNode(id, d);
+		} else {
+			for (KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
+				if (mContacts[it]->mId == id) {
+					return mContacts[it];
+				}
+			}
+			return KadContactPtr();
+		}
+	}
+
+	KadContactList FindClosest(const KadId& id, const KadId& d, unsigned qty) const {
 		if (qty <= 0) {
-			return XList<const Contact*>();
+			return KadContactList();
 		}
 		if (!IsBucket()) {
-			XList<const Contact*> result = Closest(d)->FindClosest(id, d, qty);
+			KadContactList result = Closest(d)->FindClosest(id, d, qty);
 			if (result.Count() < qty) {
 				result.Append(Farthest(d)->FindClosest(id, d, qty - result.Count()));
 			}
 			return result;
 		} else {
-			XList<const Contact*> result;
+			KadContactList result;
 			// Find closest nodes in bucket
-			for (typename ContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
+			for (KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
 				if (result.Count() < qty) {
-					result.Append(&mContacts[it]);
+					result.Append(mContacts[it]);
 				} else {
-					for (typename XList<const Contact*>::It jt = result.First(); jt != result.End(); ++jt) {
-						if (id.Closer(mContacts[it].mId, result[jt]->mId)) {
-							result[jt] = &mContacts[it];
+					for (XList<KadContactPtr>::It jt = result.First(); jt != result.End(); ++jt) {
+						if (id.Closer(mContacts[it]->mId, result[jt]->mId)) {
+							result[jt] = mContacts[it];
 							break;
 						}
 					}
@@ -167,7 +178,7 @@ private:
 
 public:
 
-	TKadRtNode(const Id& local)
+	TKadRtNode(const KadId& local)
 		: mDepth(0), mIndex(0), mLocalId(local), m0(NULL), m1(NULL)
 	{
 	}
@@ -182,41 +193,45 @@ public:
 	unsigned CountBuckets() const { return IsBucket()?1:(m0->CountBuckets() + m1->CountBuckets()); }
 	unsigned CountSpaces() const { return IsBucket()?0:(m0->CountSpaces() + m1->CountSpaces() + 1); }
 
-	const Id& LocalId() const { return mLocalId; }
+	const KadId& LocalId() const { return mLocalId; }
 
-	Id RandomId() const {
-		Id prefix = Id(mIndex).Shl(KADEMLIA_ID_BITS - mDepth);
-		Id rndId = Id::Random().SetBits(0, mDepth, 0);
+	KadId RandomId() const {
+		KadId prefix = KadId(mIndex).Shl(KADEMLIA_ID_BITS - mDepth);
+		KadId rndId = KadId::Random().SetBits(0, mDepth, 0);
 		return (rndId | prefix) ^ mLocalId;
 	}
 
-	XList<Id> GetRefreshList() {
-		XList<Id> refreshList;
+	XList<KadId> GetRefreshList() {
+		XList<KadId> refreshList;
 		for (int i=1; i<KADEMLIA_ID_SIZE; i++) {
-			Id prefix = Id::PowerOfTwo(i);
-			Id rndId = Id::Random().SetBits(0, i, 0);
+			KadId prefix = KadId::PowerOfTwo(i);
+			KadId rndId = KadId::Random().SetBits(0, i, 0);
 			refreshList.Append((rndId | prefix) ^ mLocalId);
 		}
 		return refreshList;
 	}
 
-	bool AddNode(const Contact& newNode) {
+	KadContactPtr AddNode(const KadContact& newNode) {
 		return AddNode(newNode, newNode.mId ^ mLocalId);
 	}
 
-	bool RemoveNode(const Id& id) {
+	bool RemoveNode(const KadId& id) {
 		return RemoveNode(id, id ^ mLocalId);
 	}
 
-	XList<const Contact*> FindClosest(const Id& id, unsigned qty) const {
+	KadContactList FindClosest(const KadId& id, unsigned qty) const {
 		return FindClosest(id, id ^ mLocalId, qty);
 	}
 
-	XList<const Contact*> GetContacts() const {
-		XList<const Contact*> result;
+	KadContactPtr FindNode(const KadId& id) const {
+		return FindNode(id, id ^ mLocalId);
+	}
+
+	KadContactList GetContacts() const {
+		KadContactList result;
 		if (IsBucket()) {
-			for (typename ContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
-				result.Append(&mContacts[it]);
+			for (KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
+				result.Append(mContacts[it]);
 			}
 		} else {
 			result.Append(m0->GetContacts());
@@ -225,40 +240,18 @@ public:
 		return result;
 	}
 
-	typename ContactList::It FindNodeById(const ContactList& lst, const Id& id)
+	KadContactList::It FindNodeById(const KadContactList& lst, const KadId& id)
 	{
-		for (typename ContactList::It it = lst.Last(); it != lst.End(); --it) {
-			if (lst[it].mId == id) {
+		for (KadContactList::It it = lst.Last(); it != lst.End(); --it) {
+			if (lst[it]->mId == id) {
 				return it;
 			}
 		}
 		return lst.End();
 	}
 
-	void Print() const {
-		if (IsBucket()) {
-			LOG(NULL, FMT("%*s", mDepth, "") << "depth: " << mDepth << "index: " << mIndex <<  ", contacts: " << mContacts.Count());
-
-			for (typename ContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
-				LOG(NULL, FMT("%*s", mDepth, "") << mContacts[it]);
-			}
-			if (mCache.Count()) {
-				LOG(NULL, FMT("%*s", mDepth, "") << "cached: " << mCache.Count());
-
-				for (typename ContactList::It it = mCache.First(); it != mCache.End(); ++it) {
-					LOG(NULL, FMT("%*s", mDepth, "") << mCache[it]);
-				}
-			}
-		} else {
-			LOG(NULL, FMT("%*s", mDepth, "") << "0:");
-			m0->Print();
-			LOG(NULL, FMT("%*s", mDepth, "") << "1:");
-			m1->Print();
-		}
-	}
-
 	void PrintDot(std::ostream& s) const {
-		TKadId<Id::SIZE+1> rangeSize = TKadId<Id::SIZE+1>::PowerOfTwo(Id::BIT_SIZE-mDepth);
+		TKadId<KadId::SIZE+1> rangeSize = TKadId<KadId::SIZE+1>::PowerOfTwo(KadId::BIT_SIZE-mDepth);
 
 		if (IsBucket()) {
 			s << '"' << this << '"';
@@ -269,13 +262,13 @@ public:
 			s  << "|{[" << (rangeSize*mIndex).ToString() << "; " << (rangeSize*(mIndex+1)).ToString() << ")}";
 
 			s << "|{Contacts (" << mContacts.Count() << ")}";
-			for (typename ContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
-				s << "|{" << (mContacts[it].mId).ToString() << "|" << mContacts[it].mAddr.ToString() << "}";
+			for (KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
+				s << "|{" << (mContacts[it]->mId).ToString() << "|" << mContacts[it]->mAddrExt.ToString() << "}";
 			}
 			if (mCache.Count()) {
 				s << "|{Cache (" << mCache.Count() << ")}";
-				for (typename ContactList::It it = mCache.First(); it != mCache.End(); ++it) {
-					s << "|{" << (mCache[it].mId).ToString() << "|" << mCache[it].mAddr.ToString() << "}";
+				for (KadContactList::It it = mCache.First(); it != mCache.End(); ++it) {
+					s << "|{" << (mCache[it]->mId).ToString() << "|" << mCache[it]->mAddrExt.ToString() << "}";
 				}
 			}
 			s << "}\"]" << std::endl;
@@ -310,15 +303,15 @@ private:
      * Also the range: range = [mIndex*rangeSize; (mIndex+1)*rangeSize)
      **/
 	unsigned	mIndex;
-	const Id	mLocalId;
+	const KadId	mLocalId;
 
 	TKadRtNode* m0;
 	TKadRtNode* m1;
-	ContactList mContacts;
-	ContactList mCache;
+	KadContactList mContacts;
+	KadContactList mCache;
 	XPlatDateTime mLastLookup;
 };
 
-typedef TKadRtNode<XSockAddr> KadRtNode;
+typedef TKadRtNode KadRtNode;
 
 #endif /* ROUTING_TABLE_H_ */

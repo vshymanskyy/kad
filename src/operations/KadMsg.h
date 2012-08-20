@@ -31,20 +31,22 @@ public:
 	};
 
 public:
-	KadMsg(KadMsgType type, const KadMsgId& msgId, const KadId& nodeId)
-		: mMsgType	(type)
-		, mMsgId	(msgId)
-		, mNodeId	(nodeId)
+	KadMsg(KadMsgType type)
+		: mVersion	(1)
+		, mMsgType	(type)
 	{}
 
-	//uint16_t Version() const { return ntohs(mVersion); }
+	//suint16_t Version() const { return ntohs(mVersion); }
 	const KadMsgId& MsgId() const { return mMsgId; }
 	KadMsgType MsgType() const { return KadMsgType(mMsgType); }
 	const KadId& NodeId() const { return mNodeId; }
 
+	void SetMsgId(const KadMsgId& id) { mMsgId = id; }
+	void SetNodeId(const KadId& id) { mNodeId = id; }
+
 private:
-	//uint16_t mVersion;
-	uint16_t mMsgType;
+	uint8_t mVersion;
+	uint8_t mMsgType;
 	KadMsgId mMsgId;
 	KadId mNodeId;
 
@@ -63,15 +65,15 @@ public:
 	};
 
 public:
-	KadMsgRsp(KadMsgType type, KadMsgId msgId, const KadId& nodeId, KadMsgStatus status)
-		: KadMsg	(type, msgId, nodeId)
+	KadMsgRsp(KadMsgType type, KadMsgStatus status)
+		: KadMsg	(type)
 		, mStatus	(status)
 	{}
 
 	KadMsgStatus Status() const { return KadMsgStatus(mStatus); }
 
 private:
-	uint16_t mStatus;
+	uint8_t mStatus;
 
 } GCC_SPECIFIC(__attribute__((packed)));
 

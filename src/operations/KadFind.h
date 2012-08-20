@@ -58,20 +58,17 @@ struct KadMsgContact
 
 	KadMsgContact(const KadContact& c)
 		: id(c.mId)
-		, addr(c.mAddr)
+		, addr(c.mAddrExt)
 	{  }
 
-	operator KadContact() const {
-		return KadContact(id, XSockAddr(addr));
-	}
 } GCC_SPECIFIC(__attribute__((packed)));
 
 class KadMsgFindReq : public KadMsg
 {
 
 public:
-	KadMsgFindReq(KadMsgId msgId, const KadId& nodeId,const KadId& findId)
-		: KadMsg(KadMsg::KAD_MSG_FIND_REQ, msgId, nodeId)
+	KadMsgFindReq(const KadId& findId)
+		: KadMsg(KadMsg::KAD_MSG_FIND_REQ)
 		, mFindId (findId)
 	{
 	}
@@ -87,14 +84,14 @@ class KadMsgFindRsp : public KadMsgRsp
 {
 
 public:
-	KadMsgFindRsp(KadMsgId msgId, const KadId& nodeId, KadMsgStatus status, XList<const KadContact*> &lst)
-		: KadMsgRsp(KadMsg::KAD_MSG_FIND_RSP, msgId, nodeId, status)
+	KadMsgFindRsp(KadMsgStatus status, KadContactList &lst)
+		: KadMsgRsp(KadMsg::KAD_MSG_FIND_RSP, status)
 	{
 		X_ASSERT_LE(lst.Count(), KADEMLIA_BUCKET_SIZE, "%d");
 		memset(mContacts, 0, sizeof(mContacts));
 
 		unsigned i=0;
-		for (XList<const KadContact*>::It it=lst.First(); it!=lst.End(); ++it) {
+		for (KadContactList::It it=lst.First(); it!=lst.End(); ++it) {
 			mContacts[i++]= KadMsgContact(*lst[it]);
 		}
 
