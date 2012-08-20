@@ -38,6 +38,17 @@ struct KadContact
 	{
 	}
 
+
+	void* operator new (std::size_t size) throw (std::bad_alloc) {
+		//LOG(NULL, "Contact created");
+		return malloc(size);
+	}
+
+	void operator delete (void* ptr) throw () {
+		LOG(NULL, "Contact deleted");
+		return free(ptr);
+	}
+
 	bool IsStale() const { return mFailQty >= KADEMLIA_STALE; }
 };
 

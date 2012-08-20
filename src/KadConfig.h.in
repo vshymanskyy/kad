@@ -68,7 +68,7 @@
 /**
  * K-Bucket size (K)
  **/
-#define KADEMLIA_BUCKET_SIZE 16
+#define KADEMLIA_BUCKET_SIZE 4
 
 /**
  * Size of replacement cache.

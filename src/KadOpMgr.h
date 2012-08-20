@@ -84,10 +84,11 @@ private:
 		KadIterativeFindOp(KadOpMgr* mgr, const KadId& key)
 			: mKey(key)
 			, mMgr(mgr)
+			, mPendingQty(0)
 		{
 			KadContactList lst = mMgr->FindClosest(mKey, KADEMLIA_BUCKET_SIZE);
 			for (KadContactList::It it=lst.First(); it!=lst.End(); ++it) {
-				Insert(lst[it], mNew);
+				Insert(lst[it], mList);
 			}
 		}
 
@@ -97,33 +98,37 @@ private:
 		}
 
 		void OnResponce(const KadMsgRsp* rsp, KadContactPtr& contact) {
-			KadContactList::It pending = mPending.FindAfter(mPending.First(), contact);
-			if (pending == mPending.End()) {
+			KadContactList::It pending = mBlock.FindAfter(mBlock.First(), contact);
+			if (pending == mBlock.End()) {
 				LOG_WARN(mMgr->mLog, "Wrong pending");
 				return;
 			}
 
-			mPending.Remove(pending);
+			mPendingQty--;
 
 			if (!rsp) {
 				if (contact->IsStale()) {
-					KadContactList::It n = mNew.FindAfter(mNew.First(), contact);
-					mNew.Remove(n);
 					LOG(mMgr->mLog, "Stale: " << contact->mAddrExt.ToString());
+
+					KadContactList::It n = mList.FindAfter(mList.First(), contact);
+					if (n != mList.End()) {
+						mList.Remove(n);
+					}
+					//TODO: mMgr->RemoveNode();
+				} else {
+					mBlock.Remove(pending);
 				}
 
 				int sentQty = Send(1);
 				if (sentQty) {
-					LOG(mMgr->mLog, FMT("Timeout: %d pend, %d sent", mPending.Count()-sentQty, sentQty));
-				} else if (!mPending.Count()) {
+					LOG(mMgr->mLog, FMT("Timeout: %d pend, %d sent", mPendingQty-sentQty, sentQty));
+				} else if (!mPendingQty) {
 					LOG(mMgr->mLog, "Timeout: 0 pend, 0 sent -> Complete");
 					Complete();
 				}
 
 				return;
 			} else {
-				mContacted.Append(contact);
-
 				const KadMsgFindRsp* findRsp = (const KadMsgFindRsp*)rsp;
 
 				// Merge lists
@@ -131,27 +136,25 @@ private:
 				for (int i=0; i<KADEMLIA_BUCKET_SIZE; i++) {
 					const KadId& id = findRsp->mContacts[i].id;
 					if (!id.IsZero() && id != mMgr->LocalId()) {
-						if (!FindById(id, mContacted) && !FindById(id, mNew)) {
+						if (!FindById(id, mBlock) && !FindById(id, mList)) {
 							KadContact c(findRsp->mContacts[i].id, XSockAddr(findRsp->mContacts[i].addr));
-							if (Insert(mMgr->FindAddContact(c), mNew)) {
+							if (Insert(mMgr->FindAddContact(c), mList)) {
 								insertQty++;
 							}
-						} else {
-
 						}
 					}
 				}
 
 				if (insertQty) {
-					X_ASSERT_LE(mPending.Count(), KADEMLIA_ALPHA, "%d");
-					int sentQty = Send(KADEMLIA_ALPHA-mPending.Count());
-					LOG(mMgr->mLog, FMT("%d pend, %d insert -> %d sent", mPending.Count()-sentQty, insertQty, sentQty));
+					X_ASSERT_LE(mPendingQty, KADEMLIA_ALPHA, "%d");
+					int sentQty = Send(KADEMLIA_ALPHA-mPendingQty);
+					LOG(mMgr->mLog, FMT("%d pend, %d insert -> %d sent", mPendingQty-sentQty, insertQty, sentQty));
 
-				} else if (!mPending.Count() && !insertQty) {
+				} else if (!mPendingQty && !insertQty) {
 					LOG(mMgr->mLog, "0 pend, 0 sent -> Complete");
 					Complete();
 				} else {
-					LOG(mMgr->mLog, FMT("%d pend, %d insert", mPending.Count(), insertQty));
+					LOG(mMgr->mLog, FMT("%d pend, %d insert", mPendingQty, insertQty));
 				}
 			}
 		}
@@ -170,17 +173,17 @@ private:
 
 			if (it == lst.End()) {
 				if (lst.Count() < KADEMLIA_BUCKET_SIZE) {
-					//LOG(mMgr->mLog, "Append " << (c.mId^mKey));
+					//LOG(mMgr->mLog, "Append " << (c->mId^mKey));
 					lst.Append(c);
 					return true;
 				}
 			} else {
 				if (lst.Count() < KADEMLIA_BUCKET_SIZE) {
-					//LOG(mMgr->mLog, "Insert " << (c.mId^mKey));
+					//LOG(mMgr->mLog, "Insert " << (c->mId^mKey));
 					lst.InsertBefore(it, c);
 					return true;
 				} else {
-					//LOG(mMgr->mLog, "Replace " << (mList.Back().mId^mKey) << " with" << (c.mId^mKey));
+					//LOG(mMgr->mLog, "Replace " << (mList.Back()->mId^mKey) << " with" << (c->mId^mKey));
 					lst.InsertBefore(it, c);
 					lst.PopBack();
 					return true;
@@ -204,17 +207,17 @@ private:
 
 			int sent = 0;
 			for (unsigned stale = 0; stale<KADEMLIA_STALE; stale++) {
-				for (KadContactList::It it=mNew.First(); it!=mNew.End(); ++it) {
-					KadContactPtr& c = mNew[it];
+				for (KadContactList::It it=mList.First(); it!=mList.End(); ++it) {
+					KadContactPtr& c = mList[it];
 					if (stale == c->mFailQty &&
-						mContacted.FindAfter(mContacted.First(), c) == mContacted.End() &&
-						mPending.FindAfter(mPending.First(), c) == mPending.End())
+						mBlock.FindAfter(mBlock.First(), c) == mBlock.End())
 					{
-						mPending.Append(c);
-						X_ASSERT_LE(mPending.Count(), KADEMLIA_ALPHA, "%d");
+						mBlock.Append(c);
 
 						KadMsgFindReq findReq(mKey);
 						mMgr->SendRequest(findReq, new ReqTracker(c, ReqTracker::Handler(this, &KadIterativeFindOp::OnResponce)));
+
+						mPendingQty++;
 
 						if (++sent >= qty) {
 							return sent;
@@ -227,23 +230,20 @@ private:
 		}
 
 		void Complete () {
-			LOG(mMgr->mLog, "List: " << mNew.Count());
+			LOG(mMgr->mLog, "Key: " << mKey.ToString());
+			LOG(mMgr->mLog, "Contacted: " << mBlock.Count());
+			LOG(mMgr->mLog, "List: " << mList.Count());
 
-			for (XList<KadContactPtr>::It it=mNew.First(); it!=mNew.End(); ++it) {
-				LOG(NULL, "    " << (mNew[it]->mId ^ mKey));
+			for (XList<KadContactPtr>::It it=mList.First(); it!=mList.End(); ++it) {
+				LOG(NULL, "    " << mList[it]->mId);
 			}
 
-			LOG(mMgr->mLog, "Contacted: " << mContacted.Count());
-
-			for (XList<KadContactPtr>::It it=mContacted.First(); it!=mContacted.End(); ++it) {
-				LOG(NULL, "    " << (mContacted[it]->mId ^ mKey));
-			}
 		}
 	private:
 		KadId mKey;
-		KadContactList mNew;
-		KadContactList mPending;
-		KadContactList mContacted;
+		KadContactList mList;
+		KadContactList mBlock;
+		int mPendingQty;
 		KadOpMgr* mMgr;
 	};
 
