@@ -33,7 +33,6 @@ public:
 	KadRSA(const char* priv_fn, const char* pub_fn) {
 		DecodeFromFile(priv_fn, mPrivateKey);
 		DecodeFromFile(pub_fn, mPublicKey);
-
 	}
 
 	bool ValidateKeys() {

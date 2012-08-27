@@ -7,24 +7,17 @@
 #include "KadContact.h"
 #include "KadRSA.h"
 
+KadOpMgr* gMgr;
+
 static
 int Peers(int argc, char* argv[])
 {
-
 	return 0;
 }
 
 static
 int FindNode(int argc, char* argv[])
 {
-
-	return 0;
-}
-
-static
-int Connect(int argc, char* argv[])
-{
-
 	return 0;
 }
 
@@ -39,9 +32,9 @@ int main(int argc, char *argv[])
 	/************************************************
 	 * Generate/Load Local identification data
 	 */
+	KadRSA* rsa = new KadRSA();
 
-	KadRSA* rsa = NULL;
-	if (true) {
+	/*if (key files exist) {
 		rsa = new KadRSA("key.priv", "key.pub");
 		LOG(NULL, "RSA keys loaded");
 	} else {
@@ -49,7 +42,7 @@ int main(int argc, char *argv[])
 		rsa = new KadRSA();
 		rsa->SaveKeys("key.priv", "key.pub");
 		LOG(NULL, "RSA keys saved");
-	}
+	}*/
 
 	if (!rsa->ValidateKeys()) {
 		X_FATAL("Invalid private/public keys!");
@@ -59,23 +52,36 @@ int main(int argc, char *argv[])
 	KadId localId = KadId::FromHash(pubKeyStr.c_str(), pubKeyStr.size());
 
 	printf ("LocalID: %s\n", (char*)localId.ToString());
+	gMgr = new KadOpMgr(localId, XSockAddr("::"));
+	printf ("Address: %s\n", (char*)gMgr->BindAddr().ToString());
 
 	/************************************************
-	 * Load bootstrap contacts (bsp.dat)
+	 * Load bootstrap contacts (bsp.txt)
 	 */
+	XList<XSockAddr> bspLst;
+
+	// Load from file
+
+	// No bsp's in file case
+	if (!bspLst.Count()) {
+		printf ("Please enter bootstrap node address: ");
+		char buff[256];
+		scanf("%s", buff);
+		bspLst.Append(XSockAddr(buff));
+		printf ("BSP: %s", (char*)XSockAddr(buff).ToString());
+	}
 
 	/************************************************
 	 * Join the network
 	 */
+	gMgr->Join(bspLst);
 
 	/************************************************
 	 * Start the console
 	 */
-
 	XShell sh("kad");
 	sh.RegisterCommand("peers", &Peers);
 	sh.RegisterCommand("find", &FindNode);
-	sh.RegisterCommand("connect", &Connect);
 	sh.Run();
 
 	/************************************************

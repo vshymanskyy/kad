@@ -30,7 +30,7 @@ public:
 	void testFromNum()
 	{
 		// Empty string
-		TS_ASSERT(TKadId<2>((size_t)0) == TKadId<2>());
+		//TS_ASSERT(TKadId<2>((size_t)0) == TKadId<2>());
 
 		// Different length
 		TS_ASSERT(TKadId<2>(0x11) == TKadId<2>("11"));

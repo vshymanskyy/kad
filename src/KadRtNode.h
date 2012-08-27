@@ -10,7 +10,7 @@
 #include "XLog.h"
 
 #include <iostream>
-#include <tr1/memory>
+#include <memory>
 
 class TKadRtNode
 {
@@ -46,11 +46,11 @@ private:
 		X_ASSERT(m0);
 		X_ASSERT(m1);
 
-		for (typename KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
+		for (KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
 			Closest(mLocalId ^ mContacts[it]->mId)->mContacts.Append(mContacts[it]);
 		}
 
-		for (typename KadContactList::It it = mCache.First(); it != mCache.End(); ++it) {
+		for (KadContactList::It it = mCache.First(); it != mCache.End(); ++it) {
 			TKadRtNode* closest = Closest(mLocalId ^ mCache[it]->mId);
 			if (closest->mContacts.Count() < KADEMLIA_BUCKET_SIZE) {
 				closest->mContacts.Append(mCache[it]);
@@ -70,7 +70,7 @@ private:
 		if (!IsBucket()) return Closest(d)->AddNode(newNode, d);
 
 		// Bucket found
-		typename KadContactList::It c = FindNodeById(mContacts, newNode.mId);
+		KadContactList::It c = FindNodeById(mContacts, newNode.mId);
 		if (c != mContacts.End()) {
 			KadContactPtr node = mContacts[c];
 			// Node is already present, update the info

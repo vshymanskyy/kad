@@ -251,7 +251,7 @@ private:
 	void RecieveCbk(const void* buff, unsigned len, const KadNet::Address& from) {
 		const KadMsg* req = (const KadMsg*)buff;
 
-		XThread::SleepMs(RandRange(0,8));
+		//XThread::SleepMs(RandRange(0,8));
 
 		LOG_DEEP(mLog, "<< " << *req);
 
