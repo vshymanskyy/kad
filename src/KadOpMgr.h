@@ -14,9 +14,7 @@
 #include "KadConfig.h"
 #include "KadRtNode.h"
 
-#include "operations/KadPing.h"
-#include "operations/KadFind.h"
-
+#include "KadMsg.h"
 #include "KadOverIP.h"
 
 #include <iostream>

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <msgpack.hpp>
 
 #include "KadConfig.h"
 #include "XHelpers.h"
@@ -318,7 +319,22 @@ public:
 		return result;
 	}
 
+	/*****************************************************************
+	 * MsgPack
+	 *****************************************************************/
 
+	void msgpack_pack(msgpack::packer<msgpack::sbuffer>& pk) const
+	{
+		pk.pack_raw(SIZE);
+		pk.pack_raw_body((const char*)&mData, SIZE);
+	}
+
+	void msgpack_unpack(msgpack::object o)
+	{
+		if(o.type != msgpack::type::RAW) { throw msgpack::type_error(); }
+		if(o.via.raw.size != SIZE) { return; }
+		memcpy(&mData, o.via.raw.ptr, SIZE);
+	}
 
 	/*****************************************************************
 	 * Private data

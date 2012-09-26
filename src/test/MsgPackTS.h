@@ -1,7 +1,4 @@
-
-
-
-#include "operations/KadMsg.h"
+#include "KadMsg.h"
 #include <cxxtest/TestSuite.h>
 
 class MsgPackTS : public CxxTest::TestSuite
