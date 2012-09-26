@@ -1,6 +1,9 @@
 #include "KadNodeId.h"
 #include <cryptopp/sha.h>
-#include <cryptopp/md5.h>
+
+#if KADEMLIA_ID_BITS == 128
+#	include <cryptopp/md5.h>
+#endif
 
 template<>
 TKadId<64> TKadId<64>::FromHash(const void* data, size_t len)
@@ -47,6 +50,7 @@ TKadId<20> TKadId<20>::FromHash(const void* data, size_t len)
 	return result;
 }
 
+#if KADEMLIA_ID_BITS == 128
 template<>
 TKadId<16> TKadId<16>::FromHash(const void* data, size_t len)
 {
@@ -55,6 +59,7 @@ TKadId<16> TKadId<16>::FromHash(const void* data, size_t len)
 	md5.CalculateDigest((uint8_t*)&result.mData, (uint8_t*)data, len);
 	return result;
 }
+#endif
 
 template<unsigned N>
 TKadId<N> TKadId<N>::FromHash(const void* data, size_t len)

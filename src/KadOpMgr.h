@@ -243,8 +243,8 @@ private:
 		KadId mKey;
 		KadContactList mList;
 		KadContactList mBlock;
-		int mPendingQty;
 		KadOpMgr* mMgr;
+		int mPendingQty;
 	};
 
 private:

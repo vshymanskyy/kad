@@ -61,7 +61,7 @@ struct KadMsgContact
 		, addr(c.mAddrExt)
 	{  }
 
-} GCC_SPECIFIC(__attribute__((packed)));
+};
 
 class KadMsgFindReq : public KadMsg
 {
@@ -78,7 +78,7 @@ public:
 private:
 	KadId mFindId;
 
-} GCC_SPECIFIC(__attribute__((packed)));
+};
 
 class KadMsgFindRsp : public KadMsgRsp
 {
@@ -100,7 +100,7 @@ public:
 //private:
 	KadMsgContact	mContacts[KADEMLIA_BUCKET_SIZE];
 
-} GCC_SPECIFIC(__attribute__((packed)));
+};
 
 inline
 const XLog::Stream& operator <<(const XLog::Stream& str, const KadMsgFindReq& v)

@@ -2,7 +2,6 @@
 #define ROUTING_TABLE_H_
 
 #include "KadContact.h"
-#include "KadStats.h"
 
 #include "XThread.h"
 #include "XList.h"
@@ -37,7 +36,7 @@ private:
 
 		// Check if we can split
 		if (!IsSplittable()) {
-			KAD_STATS.mSplitFailQty++;
+			// TODO: KAD_STATS.mSplitFailQty++;
 			return false;
 		}
 
@@ -62,7 +61,7 @@ private:
 		mContacts.Clear();
 		mCache.Clear();
 
-		KAD_STATS.mSplitDoneQty++;
+		// TODO: KAD_STATS.mSplitDoneQty++;
 		return true;
 	}
 
@@ -76,7 +75,7 @@ private:
 			// Node is already present, update the info
 			// TODO: Update data
 			mContacts.Append(mContacts.Remove(c));
-			KAD_STATS.mAddExistingQty++;
+			// TODO: KAD_STATS.mAddExistingQty++;
 			return node;
 		} else if (mContacts.Count() < KADEMLIA_BUCKET_SIZE) {
 			//LOG(NULL, "New node: " << newNode.mId);
@@ -85,7 +84,7 @@ private:
 			KadContactPtr node(new KadContact(newNode));
 			// Bucket is not full, insert the node
 			mContacts.Append(node);
-			KAD_STATS.mAddNewQty++;
+			// TODO: KAD_STATS.mAddNewQty++;
 
 			return node;
 		} else if (Split()) {

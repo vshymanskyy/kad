@@ -21,6 +21,11 @@ int FindNode(int argc, char* argv[])
 	return 0;
 }
 
+XList<XSockAddr> LoadBspFromFile(const char*) {
+	XList<XSockAddr> bsps;
+	return bsps;
+}
+
 int main(int argc, char *argv[])
 {
 	/************************************************
@@ -58,9 +63,7 @@ int main(int argc, char *argv[])
 	/************************************************
 	 * Load bootstrap contacts (bsp.txt)
 	 */
-	XList<XSockAddr> bspLst;
-
-	// Load from file
+	XList<XSockAddr> bspLst = LoadBspFromFile("bsp.txt");
 
 	// No bsp's in file case
 	if (!bspLst.Count()) {

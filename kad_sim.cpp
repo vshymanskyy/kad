@@ -153,7 +153,7 @@ int FindNodeCli(int argc, char* argv[])
 
 	return 0;
 }
-
+/*
 static
 int FindValueCli(int argc, char* argv[])
 {
@@ -177,7 +177,7 @@ int RemoveCli(int argc, char* argv[])
 
 	return 0;
 }
-
+*/
 
 int main(int argc, char *argv[])
 {
@@ -191,6 +191,7 @@ int main(int argc, char *argv[])
 
 	sh.RegisterCommand("j", &JoinCli);
 	sh.RegisterCommand("l", &LeaveCli);
+	sh.RegisterCommand("f", &FindNodeCli);
 
 	sh.RegisterCommand("rt", &PrintRt);
 	sh.RegisterCommand("dot", &SaveDot);

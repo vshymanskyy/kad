@@ -81,7 +81,7 @@ public:
 	TKadId operator ~() const {
 		TKadId result;
 		for (unsigned i = 0; i < SIZE; i++) {
-			result.mData[i] = ~mData[i];
+			result.mData[i] = static_cast<uint8_t>(~mData[i]);
 		}
 		return result;
 	}
@@ -93,7 +93,7 @@ public:
 	TKadId operator +(const TKadId &id) const { return TKadId(*this).Add(id); }
 	TKadId operator -(const TKadId &id) const { return TKadId(*this).Sub(id); }
 	TKadId operator *(const TKadId &id) const { return TKadId(*this).Mul(id); }
-	TKadId operator /(const TKadId &id) const { return TKadId(*this).Div(id); }
+	//TKadId operator /(const TKadId &id) const { return TKadId(*this).Div(id); }
 	TKadId operator <<(unsigned bits) const  { return TKadId(*this).Shl(bits); }
 	TKadId operator >>(unsigned bits) const  { return TKadId(*this).Shr(bits); }
 
@@ -104,7 +104,7 @@ public:
 	TKadId& operator +=(const TKadId &id) { return Add(id); }
 	TKadId& operator -=(const TKadId &id) { return Sub(id); }
 	TKadId& operator *=(const TKadId &id) { return Mul(id); }
-	TKadId& operator /=(const TKadId &id) { return Div(id); }
+	//TKadId& operator /=(const TKadId &id) { return Div(id); }
 	TKadId& operator <<=(unsigned bits) { return Shl(bits); }
 	TKadId& operator >>=(unsigned bits) { return Shr(bits);	}
 
@@ -126,9 +126,9 @@ public:
 		int16_t iSum = 0;
 		for (int iIndex=SIZE-1; iIndex>=0; iIndex--)
 		{
-			iSum = iSum + mData[iIndex] + uValue.mData[iIndex];
-			mData[iIndex] = (uint8_t)iSum;
-			iSum >>= bitsof(mData[0]);
+			iSum = static_cast<int16_t>(iSum + mData[iIndex] + uValue.mData[iIndex]);
+			mData[iIndex] = static_cast<uint8_t>(iSum);
+			iSum = static_cast<int16_t>(iSum >> bitsof(mData[0]));
 		}
 		return *this;
 	}
@@ -140,9 +140,9 @@ public:
 		int16_t iSum = 0;
 		for (int iIndex=SIZE-1; iIndex>=0; iIndex--)
 		{
-			iSum = iSum + mData[iIndex] - uValue.mData[iIndex];
-			mData[iIndex] = (uint8_t)iSum;
-			iSum >>= bitsof(mData[0]);
+			iSum = static_cast<int16_t>(iSum + mData[iIndex] - uValue.mData[iIndex]);
+			mData[iIndex] = static_cast<uint8_t>(iSum);
+			iSum = static_cast<int16_t>(iSum >> bitsof(mData[0]));
 		}
 		return *this;
 	}
@@ -150,35 +150,37 @@ public:
 	TKadId& Mul(const TKadId& uValue)
 	{
 		TKadId ret;
-		int16_t carry=0;
-		uint8_t mat[2*SIZE+1][2*SIZE]={0};
-		for(int i=SIZE-1;i>=0;i--){
-			for(int j=SIZE-1;j>=0;j--){
-				carry += mData[i]*uValue.mData[j];
-				if(carry < 10){
-					mat[i][j-(SIZE-1-i)]=carry;
-					carry=0;
-				}
-				else{
-					mat[i][j-(SIZE-1-i)]=carry % 0x100;
-					carry=carry / 0x100;
-				}
-			}
-		}
-		for(int i=1;i<SIZE+1;i++){
-			for(int j=SIZE-1;j>=0;j--){
-				carry += mat[i][j]+mat[i-1][j];
-				if(carry < 10){
-					mat[i][j]=carry;
-					carry=0;
-				} else{
-					mat[i][j]=carry % 0x100;
-					carry=carry / 0x100;
+
+		uint8_t mat[2*SIZE+1][2*SIZE] = { { 0, }, };
+		int16_t carry = 0;
+
+		for (int i=SIZE-1;i>=0;i--) {
+			for (int j=SIZE-1;j>=0;j--) {
+				carry = int16_t(carry + mData[i] * uValue.mData[j]);
+				if (carry < 0x100) {
+					mat[i][j-(SIZE-1-i)] = uint8_t(carry);
+					carry = 0;
+				} else {
+					mat[i][j-(SIZE-1-i)] = uint8_t(carry % 0x100);
+					carry = carry / 0x100;
 				}
 			}
 		}
-		for(int i=0;i<SIZE;i++)
-			ret.mData[i]=mat[SIZE][i];
+		for (int i=1;i<SIZE+1;i++) {
+			for (int j=SIZE-1;j>=0;j--) {
+				carry = int16_t(carry + mat[i][j] + mat[i-1][j]);
+				if (carry < 0x100) {
+					mat[i][j] = uint8_t(carry);
+					carry = 0;
+				} else {
+					mat[i][j] = uint8_t(carry % 0x100);
+					carry = carry / 0x100;
+				}
+			}
+		}
+		for (int i=0;i<SIZE;i++) {
+			ret.mData[i] = mat[SIZE][i];
+		}
 
 		*this = ret;
 		return *this;
@@ -187,6 +189,7 @@ public:
 	TKadId& Div(const TKadId& uValue)
 	{
 		X_FATAL("Not implemented");
+		return *this;
 	}
 
 	TKadId& Shl(unsigned uBits = 1)
@@ -203,12 +206,12 @@ public:
 		TKadId uResult;
 
 		uint16_t iShifted = 0;
-		int iIndexShift = (int)uBits / bitsof(iShifted);
-
+		int iIndexShift = static_cast<int>(uBits / bitsof(iShifted));
+		unsigned uBitsMod = uBits % bitsof(iShifted);
 		for (int iIndex=SIZE-1; iIndex>=iIndexShift; iIndex--) {
-			iShifted += ((uint16_t)mData[iIndex]) << (uBits % bitsof(iShifted));
-			uResult.mData[iIndex-iIndexShift] = (uint8_t)iShifted;
-			iShifted = iShifted >> bitsof(mData[0]);
+			iShifted = uint16_t(iShifted + (uint16_t(mData[iIndex]) << uBitsMod));
+			uResult.mData[iIndex-iIndexShift] = uint8_t(iShifted);
+			iShifted = static_cast<uint16_t>(iShifted >> bitsof(mData[0]));
 		}
 		*this = uResult;
 		return *this;
@@ -217,6 +220,7 @@ public:
 	TKadId& Shr(unsigned uBits = 1)
 	{
 		X_FATAL("Not implemented");
+		return *this;
 	}
 
 	bool GetBit(unsigned bit) const {
@@ -230,15 +234,15 @@ public:
 		X_ASSERT(bit < BIT_SIZE);
 		const int i = bit / 8;
 		const int shift = 7 - (bit % 8);
-		mData[i] |= (1 << shift);
+		mData[i] |= uint8_t(1 << shift);
 		if (!val) {
-			mData[i] ^= (1 << shift);
+			mData[i] ^= uint8_t(1 << shift);
 		}
 		return *this;
 	}
 
 	TKadId& SetBits(unsigned bit, unsigned qty, bool val = true) {
-		for (int i=bit; i<bit+qty; i++) {
+		for (unsigned i=bit; i<bit+qty; i++) {
 			SetBit(i, val);
 		}
 		return *this;
@@ -313,6 +317,8 @@ public:
 #endif
 		return result;
 	}
+
+
 
 	/*****************************************************************
 	 * Private data
