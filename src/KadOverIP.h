@@ -37,7 +37,7 @@ namespace KadNet {
 		: private XThread
 	{
 	public:
-		typedef XDelegate< void (const void* buff, unsigned len, const Address& addr) > Handler;
+		typedef XDelegate< void (const void* buff, size_t len, const Address& addr) > Handler;
 
 	public:
 		Listener(const XSockAddr& addr, Handler cbk)
@@ -59,7 +59,7 @@ namespace KadNet {
 			XThread::Wait();
 		}
 
-		void SendTo(const void* buff, unsigned len, const Address& addr) const {
+		void SendTo(const void* buff, size_t len, const Address& addr) const {
 			mSocket.SendTo(buff, len, addr);
 		}
 

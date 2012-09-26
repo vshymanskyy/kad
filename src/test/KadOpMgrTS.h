@@ -7,7 +7,7 @@ public:
 
 	void testMsgSizes() {
 		LOG(NULL, "Req: " << sizeof(KadMsg));
-		LOG(NULL, "Rsp: " << sizeof(KadMsgRsp));
+		LOG(NULL, "Rsp: " << sizeof(KadMsg));
 
 		LOG(NULL, "Ping: " << sizeof(KadMsgPing));
 		LOG(NULL, "Pong: " << sizeof(KadMsgPong));

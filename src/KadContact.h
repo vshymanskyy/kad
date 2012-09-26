@@ -3,16 +3,16 @@
 
 #include "KadConfig.h"
 #include "KadNodeId.h"
+#include "KadOverIP.h"
 #include <XList.h>
 
-#include <net/XSockAddr.h>
 #include <tr1/memory>
 
 ///template <unsigned ID_SIZE>
 struct KadContact
 {
 	KadId		mId;
-	XSockAddr	mAddrExt;
+	KadNet::Address	mAddrExt;
 	//XSockAddr	mAddrInt;
 	//XSockAddr	mAddrSrv;
 

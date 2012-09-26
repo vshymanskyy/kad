@@ -123,7 +123,7 @@ int TestRT(int argc, char* argv[])
 	KadRtNode rt(0);
 
 	for (int i=0; i<100000; i++) {
-		rt.AddNode(KadContact(KadId::Random(), XSockAddr::Random()));
+		rt.AddNode(KadId::Random(), XSockAddr::Random());
 	}
 
 	/*for (int i=0; i<=0xFFFF; i++) {

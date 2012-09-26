@@ -24,7 +24,7 @@ public:
 
 		for (int i=0; i<10000; i++) {
 			KadId cid = KadId::Random();
-			rt.AddNode(KadContact(cid, XSockAddr::Random()));
+			rt.AddNode(cid, XSockAddr::Random());
 			TS_ASSERT_EQUALS(rt.CountSpaces(), rt.CountBuckets()-1);
 		}
 

@@ -1,6 +1,7 @@
 #ifndef ROUTING_TABLE_H_
 #define ROUTING_TABLE_H_
 
+
 #include "KadContact.h"
 
 #include "XThread.h"
@@ -65,11 +66,11 @@ private:
 		return true;
 	}
 
-	KadContactPtr AddNode(const KadContact& newNode, const KadId& d) {
-		if (!IsBucket()) return Closest(d)->AddNode(newNode, d);
+	KadContactPtr AddNode(const KadId& id, const KadNet::Address& addr, const KadId& dist) {
+		if (!IsBucket()) return Closest(dist)->AddNode(id, addr, dist);
 
 		// Bucket found
-		KadContactList::It c = FindNodeById(mContacts, newNode.mId);
+		KadContactList::It c = FindNodeById(mContacts, id);
 		if (c != mContacts.End()) {
 			KadContactPtr node = mContacts[c];
 			// Node is already present, update the info
@@ -81,39 +82,39 @@ private:
 			//LOG(NULL, "New node: " << newNode.mId);
 
 			// Make a copy
-			KadContactPtr node(new KadContact(newNode));
+			KadContactPtr node(new KadContact(id, addr));
 			// Bucket is not full, insert the node
 			mContacts.Append(node);
 			// TODO: KAD_STATS.mAddNewQty++;
 
 			return node;
 		} else if (Split()) {
-			return AddNode(newNode, d);
+			return AddNode(id, addr, dist);
 		} else {
 			// TODO: Check cache order
-			KadContactList::It c2 = FindNodeById(mCache, newNode.mId);
+			KadContactList::It c2 = FindNodeById(mCache, id);
 			if (c2 != mCache.End()) {
 				KadContactPtr node = mCache[c2];
 				// TODO: Update data
 				mCache.Append(mCache.Remove(c2));
 				return node;
 			} else if (mCache.Count() < KADEMLIA_CACHE_SIZE) {
-				KadContactPtr node(new KadContact(newNode));
+				KadContactPtr node(new KadContact(id, addr));
 				mCache.Append(node);
 				return node;
 			} else {
 				mCache.PopFront();
-				KadContactPtr node(new KadContact(newNode));
+				KadContactPtr node(new KadContact(id, addr));
 				mCache.Append(node);
 				return node;
 			}
 		}
 
-		return KadContactPtr(new KadContact(newNode));
+		return KadContactPtr();
 	}
 
-	bool RemoveNode(const KadId& id, const KadId& d) {
-		if (!IsBucket()) return Closest(d)->RemoveNode(id, d);
+	bool RemoveNode(const KadId& id, const KadId& dist) {
+		if (!IsBucket()) return Closest(dist)->RemoveNode(id, dist);
 
 		// Bucket found, check if node is present
 		KadContactList::It it = FindNodeById(mContacts, id);
@@ -133,9 +134,9 @@ private:
 		return false;
 	}
 
-	KadContactPtr FindNode(const KadId& id, const KadId& d) const {
+	KadContactPtr FindNode(const KadId& id, const KadId& dist) const {
 		if (!IsBucket()) {
-			return Closest(d)->FindNode(id, d);
+			return Closest(dist)->FindNode(id, dist);
 		} else {
 			for (KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
 				if (mContacts[it]->mId == id) {
@@ -146,14 +147,14 @@ private:
 		}
 	}
 
-	KadContactList FindClosest(const KadId& id, const KadId& d, unsigned qty) const {
+	KadContactList FindClosest(const KadId& id, const KadId& dist, unsigned qty) const {
 		if (qty <= 0) {
 			return KadContactList();
 		}
 		if (!IsBucket()) {
-			KadContactList result = Closest(d)->FindClosest(id, d, qty);
+			KadContactList result = Closest(dist)->FindClosest(id, dist, qty);
 			if (result.Count() < qty) {
-				result.Append(Farthest(d)->FindClosest(id, d, qty - result.Count()));
+				result.Append(Farthest(dist)->FindClosest(id, dist, qty - result.Count()));
 			}
 			return result;
 		} else {
@@ -210,8 +211,8 @@ public:
 		return refreshList;
 	}
 
-	KadContactPtr AddNode(const KadContact& newNode) {
-		return AddNode(newNode, newNode.mId ^ mLocalId);
+	KadContactPtr AddNode(const KadId& id, const KadNet::Address& addr) {
+		return AddNode(id, addr, id ^ mLocalId);
 	}
 
 	bool RemoveNode(const KadId& id) {

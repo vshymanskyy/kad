@@ -34,11 +34,11 @@ public:
 
 	void testCast(void)
 	{
-		MsgPackFindRsp<16> a;
+		KadMsgFindRsp a;
 		memset(&a, 0, sizeof(a));
 
-		a.mMsgType = MsgPackHeader<16>::KAD_MSG_JOIN_RSP;
-		MsgPackContact<16> c1;
+		a.mMsgType = KadMsg::KAD_MSG_JOIN_RSP;
+		KadMsgContact c1;
 		c1.mAddr.mPort = 4096;
 		a.mContacts.push_back(c1);
 
@@ -53,7 +53,7 @@ public:
 
         //msgpack_object_print(stdout, msg.get());
 
-        MsgPackFindRsp<16> b;
+        KadMsgFindRsp b;
         memset(&b, 0, sizeof(b));
         msg.get().convert(&b);
 
@@ -66,33 +66,33 @@ public:
 	{
 		{	// Just header: Ping/Pong
 			msgpack::sbuffer sbuf;
-			msgpack::pack(sbuf, MsgPackHeader<16>());
+			msgpack::pack(sbuf, KadMsg());
 			TS_ASSERT_EQUALS(sbuf.size(), 20);
 		}
 		{	// Address
 			msgpack::sbuffer sbuf;
-			msgpack::pack(sbuf, MsgPackAddr());
+			msgpack::pack(sbuf, KadMsgAddr());
 			TS_ASSERT_EQUALS(sbuf.size(), 22);
 		}
 		{	// Contact
 			msgpack::sbuffer sbuf;
-			msgpack::pack(sbuf, MsgPackContact<16>());
+			msgpack::pack(sbuf, KadMsgContact());
 			TS_ASSERT_EQUALS(sbuf.size(), 38);
 		}
 		{	// FindReq
 			msgpack::sbuffer sbuf;
-			msgpack::pack(sbuf, MsgPackFindReq<16>());
+			msgpack::pack(sbuf, KadMsgFindReq());
 			TS_ASSERT_EQUALS(sbuf.size(), 38);
 		}
 		{	// FindRsp with 0 contacts
 			msgpack::sbuffer sbuf;
-			msgpack::pack(sbuf, MsgPackFindRsp<16>());
+			msgpack::pack(sbuf, KadMsgFindRsp());
 			TS_ASSERT_EQUALS(sbuf.size(), 22);
 		}
 		{	// FindRsp with 16 contacts
-			MsgPackFindRsp<16> msg;
+			KadMsgFindRsp msg;
 			for (int i=0; i<16; i++) {
-				msg.mContacts.push_back(MsgPackContact<16>());
+				msg.mContacts.push_back(KadMsgContact());
 			}
 			msgpack::sbuffer sbuf;
 			msgpack::pack(sbuf, msg);

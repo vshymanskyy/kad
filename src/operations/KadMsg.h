@@ -2,89 +2,16 @@
 #define KAD_MSG_H_
 
 #include "KadConfig.h"
+#include "KadContact.h"
 #include "KadNodeId.h"
-
-typedef KadId KadMsgId;
-
-class KadMsg
-{
-public:
-	enum KadMsgType
-	{
-		KAD_MSG_PING,
-		KAD_MSG_PONG,
-		KAD_MSG_JOIN_REQ,
-		KAD_MSG_JOIN_RSP,
-		KAD_MSG_FIND_REQ,
-		KAD_MSG_FIND_RSP,
-		KAD_MSG_STORE_REQ,
-		KAD_MSG_STORE_RSP,
-		KAD_MSG_REMOVE_REQ,
-		KAD_MSG_REMOVE_RSP,
-		KAD_MSG_LEAVE_REQ,
-		KAD_MSG_LEAVE_RSP,
-
-		KAD_MSG_RFIND_REQ,
-		KAD_MSG_RFIND_RSP,
-
-		KAD_MSG_QTY
-	};
-
-public:
-	KadMsg(KadMsgType type)
-		: mVersion	(1)
-		, mMsgType	(type)
-	{}
-
-	//suint16_t Version() const { return ntohs(mVersion); }
-	const KadMsgId& MsgId() const { return mMsgId; }
-	KadMsgType MsgType() const { return KadMsgType(mMsgType); }
-	const KadId& NodeId() const { return mNodeId; }
-
-	void SetMsgId(const KadMsgId& id) { mMsgId = id; }
-	void SetNodeId(const KadId& id) { mNodeId = id; }
-
-private:
-	uint8_t mVersion;
-	uint8_t mMsgType;
-	KadMsgId mMsgId;
-	KadId mNodeId;
-
-};
-
-class KadMsgRsp : public KadMsg
-{
-public:
-	enum KadMsgStatus
-	{
-		KAD_MSG_STATUS_OK,
-		KAD_MSG_STATUS_FAILURE,
-		KAD_MSG_STATUS_TIMEOUT,
-		KAD_MSG_STATUS_NOT_FOUND,
-		KAD_MSG_STATUS_EXISTS,
-	};
-
-public:
-	KadMsgRsp(KadMsgType type, KadMsgStatus status)
-		: KadMsg	(type)
-		, mStatus	(status)
-	{}
-
-	KadMsgStatus Status() const { return KadMsgStatus(mStatus); }
-
-private:
-	uint8_t mStatus;
-
-} GCC_SPECIFIC(__attribute__((packed)));
-
-
 
 #include <msgpack.hpp>
 #include <vector>
 #include <string>
 
 template<unsigned SIZE>
-struct MsgPackRaw {
+struct MsgPackRaw
+{
 	uint8_t mData[SIZE];
 
 	void msgpack_pack(msgpack::packer<msgpack::sbuffer>& pk) const
@@ -101,50 +28,15 @@ struct MsgPackRaw {
 	}
 };
 
-template<unsigned SIZE>
-struct MsgPackHeader {
 
-	enum Type
-	{
-		KAD_MSG_PING,
-		KAD_MSG_PONG,
-		KAD_MSG_JOIN_REQ,
-		KAD_MSG_JOIN_RSP,
-		KAD_MSG_FIND_REQ,
-		KAD_MSG_FIND_RSP,
-		KAD_MSG_STORE_REQ,
-		KAD_MSG_STORE_RSP,
-		KAD_MSG_REMOVE_REQ,
-		KAD_MSG_REMOVE_RSP,
-		KAD_MSG_LEAVE_REQ,
-		KAD_MSG_LEAVE_RSP,
-
-		KAD_MSG_RFIND_REQ,
-		KAD_MSG_RFIND_RSP,
-
-		KAD_MSG_QTY
-	};
-
-	uint16_t			mMsgType;
-	uint64_t			mMsgId;
-	MsgPackRaw<SIZE>	mNodeId;
-
-    MSGPACK_DEFINE(mMsgType, mMsgId, mNodeId);
-};
-
-struct MsgPackAddr
+struct KadMsgAddr
 {
 	enum Family {
 		UNSPEC, IPv4, IPv6
 	};
 
-	uint8_t		mFamily;
-	uint16_t	mPort;
-	MsgPackRaw<16> mAddr;
-
-public:
-	MsgPackAddr() : mFamily(UNSPEC) {}
-	MsgPackAddr(const XSockAddr& a) {
+	KadMsgAddr() : mFamily(UNSPEC) {}
+	KadMsgAddr(const XSockAddr& a) {
 		switch (a.SA()->sa_family) {
 		case AF_INET:
 			mFamily = IPv4;
@@ -181,31 +73,116 @@ public:
 		return result;
 	}
 
+	uint8_t			mFamily;
+	uint16_t		mPort;
+	MsgPackRaw<16>	mAddr;
+
 	MSGPACK_DEFINE(mFamily, mPort, mAddr);
 };
 
-template<unsigned SIZE>
-struct MsgPackContact {
-	MsgPackRaw<SIZE>	mId;
-	MsgPackAddr		mAddr;
+struct KadMsgId
+{
+	KadMsgId() {}
+	KadMsgId(const KadId& id) { memcpy(mData, id.Data(), KADEMLIA_ID_SIZE); }
+	operator KadId() const { KadId id; memcpy(id.Data(), mData, KADEMLIA_ID_SIZE); return id; }
+
+	uint8_t mData[KADEMLIA_ID_SIZE];
+
+	void msgpack_pack(msgpack::packer<msgpack::sbuffer>& pk) const
+	{
+		pk.pack_raw(KADEMLIA_ID_SIZE);
+		pk.pack_raw_body((const char*)&mData, KADEMLIA_ID_SIZE);
+	}
+
+	void msgpack_unpack(msgpack::object o)
+	{
+		if(o.type != msgpack::type::RAW) { throw msgpack::type_error(); }
+		if(o.via.raw.size != KADEMLIA_ID_SIZE) { return; }
+		memcpy(&mData, o.via.raw.ptr, KADEMLIA_ID_SIZE);
+	}
+};
+
+struct KadMsgContact
+{
+	KadMsgContact() {}
+	KadMsgContact(const KadContact& a) : mId (a.mId), mAddr (a.mAddrExt) { }
+	operator KadContact() const { return KadContact(mId, mAddr); }
+
+	KadMsgId	mId;
+	KadMsgAddr	mAddr;
 
 	MSGPACK_DEFINE(mId, mAddr);
 };
 
-template<unsigned SIZE>
-struct MsgPackFindReq: public MsgPackHeader<SIZE>
+struct KadMsg
 {
-	MsgPackRaw<SIZE> mFindId;
+	enum Type
+	{
+		KAD_MSG_PING,
+		KAD_MSG_PONG,
+		KAD_MSG_JOIN_REQ,
+		KAD_MSG_JOIN_RSP,
+		KAD_MSG_FIND_REQ,
+		KAD_MSG_FIND_RSP,
+		KAD_MSG_STORE_REQ,
+		KAD_MSG_STORE_RSP,
+		KAD_MSG_REMOVE_REQ,
+		KAD_MSG_REMOVE_RSP,
+		KAD_MSG_LEAVE_REQ,
+		KAD_MSG_LEAVE_RSP,
 
-	MSGPACK_DEFINE((MsgPackHeader<SIZE>&)(*this), mFindId);
+		KAD_MSG_RFIND_REQ,
+		KAD_MSG_RFIND_RSP,
+
+		KAD_MSG_QTY
+	};
+
+	KadMsg() {}
+	KadMsg(Type t) : mMsgType (t) {}
+
+	uint16_t	mMsgType;
+	uint64_t	mMsgId;
+	KadMsgId	mSrcId;
+
+    MSGPACK_DEFINE(mMsgType, mMsgId, mSrcId);
 };
 
-template<unsigned SIZE>
-struct MsgPackFindRsp: public MsgPackHeader<SIZE>
+struct KadMsgPing: public KadMsg
 {
-	std::vector<MsgPackContact<SIZE> > mContacts;
+	KadMsgPing() : KadMsg(KadMsg::KAD_MSG_PING) {}
 
-	MSGPACK_DEFINE((MsgPackHeader<SIZE>&)(*this), mContacts);
+	MSGPACK_DEFINE((KadMsg&)(*this));
+};
+
+struct KadMsgPong: public KadMsg
+{
+	KadMsgPong() : KadMsg(KadMsg::KAD_MSG_PONG) {}
+
+	MSGPACK_DEFINE((KadMsg&)(*this));
+};
+
+struct KadMsgFindReq: public KadMsg
+{
+	KadMsgFindReq() {}
+	KadMsgFindReq(const KadMsgId& id) : KadMsg(KadMsg::KAD_MSG_FIND_REQ), mTargetId(id) {}
+
+	KadMsgId mTargetId;
+
+	MSGPACK_DEFINE((KadMsg&)(*this), mTargetId);
+};
+
+struct KadMsgFindRsp: public KadMsg
+{
+	KadMsgFindRsp() {}
+	KadMsgFindRsp(const KadContactList& lst) : KadMsg(KadMsg::KAD_MSG_FIND_RSP) {
+		for (KadContactList::It it = lst.First(); it != lst.End(); ++it) {
+			mContacts.push_back(*lst[it]);
+		}
+	}
+
+	std::vector<KadMsgContact> mContacts;
+
+	MSGPACK_DEFINE((KadMsg&)(*this), mContacts);
 };
 
 #endif /* KAD_MSG_H_ */

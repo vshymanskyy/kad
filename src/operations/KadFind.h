@@ -1,5 +1,5 @@
 #include "KadMsg.h"
-
+/*
 class KadMsgAddr
 {
 	enum Family {
@@ -119,3 +119,4 @@ const XLog::Stream& operator <<(const XLog::Stream& str, const KadMsgFindRsp& v)
 	}
 	return 	str << "KAD_MSG_FIND_RSP { " << qty << " }";
 }
+*/
