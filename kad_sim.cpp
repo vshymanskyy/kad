@@ -181,6 +181,7 @@ int RemoveCli(int argc, char* argv[])
 
 int main(int argc, char *argv[])
 {
+	XStackTrace();
 	RandInit();
 
 	//XLogManager::Get().SetDefaultLogger(new XFileLogger("log.txt"));

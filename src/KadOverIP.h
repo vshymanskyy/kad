@@ -46,7 +46,7 @@ namespace KadNet {
 			if (mSocket.Bind(addr)) {
 				LOG(mLog, "Bound to address " << mSocket.GetBindAddr().ToString());
 			} else {
-				LOG_CRIT(mLog, "Could not bind to address " << addr.ToString());
+				LOG_FAIL(mLog, "Could not bind to address " << addr.ToString());
 				return;
 			}
 			Start();

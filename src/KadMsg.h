@@ -125,9 +125,10 @@ struct KadMsg
 	KadMsg() {}
 	KadMsg(Type t) : mMsgType (t) {}
 
-	uint16_t	mMsgType;
+	unsigned	mVersion;
+	unsigned	mMsgType;
 	uint64_t	mMsgId;
-	KadId	mSrcId;
+	KadId		mSrcId;
 
     MSGPACK_DEFINE(mMsgType, mMsgId, mSrcId);
 };

@@ -123,7 +123,9 @@ private:
 						i != findRsp.mContacts.end(); i++)
 				{
 					const KadId& id = i->mId;
-					if (!id.IsZero() && id != mMgr->LocalId()) {
+					if (!id.IsZero() && id != mMgr->LocalId())
+						//&& !((contact->mAddrExt.IsLoopback() || contact->mAddrExt.IsAny()) && contact->mAddrExt.Port() == mMgr->BindAddr().Port()))
+					{
 						if (!FindById(id, mBlock) && !FindById(id, mList)) {
 							if (Insert(mMgr->FindAddContact(id, i->mAddr), mList)) {
 								insertQty++;
@@ -444,6 +446,16 @@ public:
 
 		//XThread::SleepMs(KADEMLIA_TIMEOUT_OPERATION);
 	}
+
+	const XList<XSockAddr> Leave() {
+		XList<XSockAddr> result;
+		KadContactList cnt = mRoutingTable.GetContacts();
+		for (KadContactList::It it = cnt.First(); it != cnt.End(); ++it) {
+			result.Append(cnt[it]->mAddrExt);
+		}
+		return result;
+	}
+
 	KadContactList GetContacts() const {
 		return mRoutingTable.GetContacts();
 	}
