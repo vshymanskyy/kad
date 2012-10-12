@@ -51,8 +51,8 @@ target_link_libraries (kad xplat udt msgpack cryptopp) # Win32: cryptlib
 #add_executable(kad_sim kad_sim.cpp)
 #target_link_libraries (kad_sim kad)
 
-add_executable(sign sign.cpp)
-target_link_libraries (sign msgpack cryptopp) # Win32: cryptlib
+add_executable(signtool signtool.cpp)
+target_link_libraries (signtool msgpack cryptopp) # Win32: cryptlib
 
 add_executable(kad_node kad_node.cpp)
 target_link_libraries (kad_node kad)

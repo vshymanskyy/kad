@@ -41,7 +41,9 @@ XList<XSockAddr> LoadBspFromFile(const char* fn)
 	if (infile.is_open()) {
 		while (!infile.eof()) {
 			getline(infile, sLine);
-			bsps.Append(XSockAddr(sLine.c_str()));
+			if (sLine[0] != ';') {
+				bsps.Append(XSockAddr::Lookup(sLine.c_str()));
+			}
 		}
 		infile.close();
 	}
@@ -147,7 +149,7 @@ int main(int argc, char *argv[])
 	/************************************************
 	 * Load bootstrap contacts (bsp.txt)
 	 */
-	XList<XSockAddr> bspLst = LoadBspFromFile("bsp.txt");
+	XList<XSockAddr> bspLst = LoadBspFromFile("bsp.cfg");
 
 	// No bsp's in file case
 	if (!bspLst.Count()) {
@@ -181,7 +183,7 @@ int main(int argc, char *argv[])
 	/************************************************
 	 * Save bootstrap contacts (bsp.txt)
 	 */
-	SaveBspToFile("bsp.txt", bspLst);
+	SaveBspToFile("bsp.cfg", bspLst);
 
 	return 0;
 }

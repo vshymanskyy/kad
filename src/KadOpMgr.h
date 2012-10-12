@@ -437,6 +437,7 @@ public:
 
 	void Join(const XList<XSockAddr>& bsp) {
 		for (XList<XSockAddr>::It it = bsp.First(); it != bsp.End(); ++it) {
+			LOG_WARN(mLog, "Ping to" << bsp[it].ToString());
 			KadMsgPing ping;
 			SendRequest(ping, bsp[it]);
 		}
