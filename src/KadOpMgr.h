@@ -21,6 +21,85 @@
 #include <map>
 using namespace std;
 
+class XNotifyable
+	: public XMutexRecursive
+{
+
+public:
+	XNotifyable() {
+		pthread_cond_init(&mCond, NULL);
+	}
+
+	~XNotifyable() {
+		pthread_cond_destroy(&mCond);
+	}
+
+	void Notify() {
+		Lock();
+		mFlag = true;
+		pthread_cond_signal(&mCond);
+		Unlock();
+	}
+
+	void NotifyAll() {
+		Lock();
+		mFlag = true;
+		pthread_cond_broadcast(&mCond);
+		Unlock();
+	}
+
+	void Wait() {
+		Lock();
+		mFlag = false;
+		while(mFlag == false)
+			pthread_cond_wait(&mCond, &mLock);
+
+		Unlock();
+	}
+
+	bool Wait(long timeout) {
+		Lock();
+		mFlag = false;
+		timespec abstime;
+		timespec_now(&abstime);
+		timespec_addms(&abstime, timeout);
+		while (mFlag == false) {
+			if (ETIMEDOUT == pthread_cond_timedwait(&mCond, &mLock, &abstime)) {
+				Unlock();
+				return false;
+			}
+		}
+		Unlock();
+		return true;
+	}
+
+private:
+	void timespec_now(struct timespec *ts)
+	{
+	    struct timeval  tv;
+	    // get the current time
+	    gettimeofday(&tv, NULL);
+	    ts->tv_sec  = tv.tv_sec;
+	    ts->tv_nsec = tv.tv_usec*1000;
+	}
+
+	void timespec_addms(struct timespec *ts, long ms)
+	{
+	    int sec=ms/1000;
+	    ms=ms-sec*1000;
+
+	    // perform the addition
+	    ts->tv_nsec+=ms*1000000;
+
+	    // adjust the time
+	    ts->tv_sec+=ts->tv_nsec/1000000000 + sec;
+	    ts->tv_nsec=ts->tv_nsec%1000000000;
+	}
+
+	pthread_cond_t	mCond;
+	bool			mFlag;
+};
+
 class KadOpMgr {
 	friend class KadOpMgrTS;
 	friend class KadIterativeFindOp;
@@ -266,17 +345,17 @@ private:
         		>= KadMsg::KAD_MSG_QTY)				// proper range
         {
         	LOG_WARN(mLog, "Invalid format");
+        	mStats.MsgDropped++;
         	return;
         }
 
 		//XThread::SleepMs(RandRange(0,8));
 
-		//LOG_DEEP(mLog, "<< " << *req);
-
         KadMsg req = msg.get().via.array.ptr[0].convert();
 
 		if (KadId(req.mSrcId) == LocalId()) {
 			LOG_WARN(mLog, "Message from self -> dropped");
+			mStats.MsgDropped++;
 			return;
 		}
 
@@ -286,11 +365,13 @@ private:
 
 		switch (req.mMsgType) {
 		case KadMsg::KAD_MSG_PING: {
+			mStats.UdpReqRx += len;
 			//LOG_WARN(mLog, "Ping from " << from.ToString());
 			KadMsgPong pong;
 			SendResponse(pong, from, req);
 		} break;
 		case KadMsg::KAD_MSG_FIND_REQ: {
+			mStats.UdpReqRx += len;
 			const KadMsgFindReq findReq = msg.get().convert();
 			mLock.Lock();
 			KadContactList lst = mRoutingTable.FindClosest(findReq.mTargetId, KADEMLIA_BUCKET_SIZE);
@@ -300,16 +381,20 @@ private:
 			mLock.Unlock();
 		} break;
 		case KadMsg::KAD_MSG_STORE_REQ: {
-
+			mStats.UdpReqRx += len;
 		} break;
 		case KadMsg::KAD_MSG_REMOVE_REQ: {
-
+			mStats.UdpReqRx += len;
 		} break;
 		case KadMsg::KAD_MSG_PONG:
+			LOG_WARN(mLog, "PONG_NTF");
+			mPing.Notify();
+			LOG_WARN(mLog, "PONG_NTF_DONE");
 		case KadMsg::KAD_MSG_JOIN_RSP:
 		case KadMsg::KAD_MSG_FIND_RSP:
 		case KadMsg::KAD_MSG_STORE_RSP:
 		case KadMsg::KAD_MSG_REMOVE_RSP: {
+			mStats.UdpRspRx += len;
 			HandleResponse(req, &obj, from);
 		} break;
 		default:
@@ -332,6 +417,7 @@ private:
         msgpack::pack(sbuf, s);
 		mListener.SendTo(sbuf.data(), sbuf.size(), handler->mDst->mAddrExt);
 		XTimerContext::Global().SetTimer(XTimerContext::Handler(this, &KadOpMgr::HandleTimeout), KADEMLIA_TIMEOUT_RESPONSE, 0, handler);
+		mStats.UdpReqTx += sbuf.size();
 	}
 
 	template <typename T>
@@ -344,6 +430,7 @@ private:
         msgpack::sbuffer sbuf;
         msgpack::pack(sbuf, s);
 		mListener.SendTo(sbuf.data(), sbuf.size(), addr);
+		mStats.UdpRspTx += sbuf.size();
 	}
 
 	template <typename T>
@@ -354,6 +441,7 @@ private:
         msgpack::sbuffer sbuf;
         msgpack::pack(sbuf, s);
 		mListener.SendTo(sbuf.data(), sbuf.size(), addr);
+		mStats.UdpRspTx += sbuf.size();
 	}
 
 	void HandleResponse(const KadMsg& hdr, const msgpack::object* obj, const KadNet::Address& addr) {
@@ -366,12 +454,14 @@ private:
 		mLock.Lock(); // TODO: Blocks
 		XList<ReqTracker*>::It t = mOps.FindAfter(mOps.First(), ReqTracker::SelectById(hdr.mMsgId));
 		if (t != mOps.End()) {
+			mStats.ReqSucc++;
 			ReqTracker* handler = mOps[t];
 			mOps.Remove(t);
 			XTimerContext::Global().CancelTimer(XTimerContext::Handler(this, &KadOpMgr::HandleTimeout), handler);
 			handler->OnResponse(obj);
 			delete handler;
 		} else {
+			mStats.RspUnkn++;
 			LOG_WARN(mLog, "Transaction not found (response)");
 		}
 		mLock.Unlock();
@@ -384,6 +474,7 @@ private:
 		ReqTracker* handler = (ReqTracker*)rsp;
 		XList<ReqTracker*>::It t = mOps.FindAfter(mOps.First(), handler);
 		if (t != mOps.End()) {
+			mStats.ReqFail++;
 			mOps.Remove(t);
 			handler->OnTimeout();
 			delete handler;
@@ -393,7 +484,7 @@ private:
 		mLock.Unlock();
 	}
 
-	enum State {
+/*	enum State {
 		KAD_INIT,
 		KAD_JOINING,
 		KAD_JOINED,
@@ -403,6 +494,7 @@ private:
 	void SetState(State s) {
 		mState = s;
 	}
+*/
 
 public:
 
@@ -420,13 +512,15 @@ public:
 		return mRoutingTable.FindClosest(id, qty);
 	}
 
-	KadContactPtr FindAddContact(const KadId& id, const KadNet::Address& addr) {
+	KadContactPtr FindAddContact(const KadId& id, const KadNet::Address& addr)
+	{
 		if (id == LocalId()) {
 			return KadContactPtr();
 		}
 
 		// look in RT
 		if (KadContactPtr rt = mRoutingTable.AddNode(id, addr)) {
+			mStats.ContInRt++;
 			return rt;
 		}
 
@@ -438,7 +532,8 @@ public:
 		return KadContactPtr();
 	}
 
-	void Find(const KadId& key, KadIterativeFindOp::Handler h) {
+	void Find(const KadId& key, KadIterativeFindOp::Handler h)
+	{
 		mLock.Lock();
 
 		KadIterativeFindOp* op = new KadIterativeFindOp(this, key, h);
@@ -447,34 +542,52 @@ public:
 		mLock.Unlock();
 	}
 
-	void Init(const KadContactList& bsp) {
+	void Init(const KadContactList& bsp)
+	{
 		// Fill local routing table
 		for (KadContactList::It it = bsp.First(); it != bsp.End(); ++it) {
 			//TODO: FindAddContact(bsp[it]);
 		}
 	}
 
-	void Join(const XList<XSockAddr>& bsp) {
+	void Join(const XList<XSockAddr>& bsp)
+	{
 
-		if (!bsp.Count()) return;
+		if (!bsp.Count())
+			return;
 
 		mLock.Lock();
 		unsigned contacts = mRoutingTable.CountContacts();
 		mLock.Unlock();
+
+		unsigned delay = KADEMLIA_TIMEOUT_RESPONSE;
+		unsigned delayMax = 30*1000;
+		float backoff = 10.5;
 
 		while (!contacts) {
 			for (XList<XSockAddr>::It it = bsp.First(); it != bsp.End(); ++it) {
 				LOG_WARN(mLog, "Ping to" << bsp[it].ToString());
 				KadMsgPing ping;
 				SendRequest(ping, bsp[it]);
+				XThread::SleepMs(50);
 			}
-			XThread::SleepMs(KADEMLIA_TIMEOUT_RESPONSE/10);
+			if (mPing.Wait(delay)) {
+				LOG_WARN(mLog, "NOTIFIED");
+			} else {
+				LOG_WARN(mLog, "Timeout");
+			}
 
 			mLock.Lock();
 			contacts = mRoutingTable.CountContacts();
 			mLock.Unlock();
-		}
 
+			if (delay < delayMax) {
+				delay = backoff*delay;
+				if (delay > delayMax) {
+					delay = delayMax;
+				}
+			}
+		}
 
 		// Perform a node lookup for your own LocalId
 		Find(LocalId(), KadIterativeFindOp::Handler(this, &KadOpMgr::JoinFindComplete));
@@ -501,16 +614,23 @@ public:
 		return mRoutingTable.GetContacts();
 	}
 
+
+	KadRtNode::Stats GetRtStats() const {
+		return mRoutingTable.GetStats();
+	}
+
 private:
 
-	void JoinFindComplete(KadContactList& nodes) {
+	void JoinFindComplete(KadContactList& nodes)
+	{
 		LOG(mLog, "Join: Find self complete (" << mRoutingTable.CountContacts() << " nodes in RT)");
 		// TODO: Update buckets
 
-		mTimeoutTimers.SetTimer(XTimerContext::Handler(this, &KadOpMgr::UpdateBuckets), 0, 60*1000);
+		mPeriodicTimers.SetTimer(XTimerContext::Handler(this, &KadOpMgr::RefreshAllBuckets), 0, KADEMLIA_REFRESH);
 	}
 
-	void UpdateBuckets(void*) {
+	void RefreshAllBuckets(void*)
+	{
 		LOG(mLog, "Refresh started");
 		for (int i=1; i<KADEMLIA_ID_BITS; i++) {
 			KadId prefix = KadId::PowerOfTwo(i);
@@ -521,17 +641,19 @@ private:
 		LOG(mLog, "Refresh finished");
 	}
 
-	void JoinUpdateComplete(KadContactList& nodes) {
+	void JoinUpdateComplete(KadContactList& nodes)
+	{
 		//LOG(mLog, "Join: Update buckets complete => Joined");
 	}
 
-	void SendPing(const KadNet::Address& addr) {
+	void SendPing(const KadNet::Address& addr)
+	{
 		KadMsgPing ping;
 		SendRequest(ping, addr);
 	}
 
-	KadContactPtr CheckInCache(const KadId& id, const KadNet::Address& addr) {
-
+	KadContactPtr CheckInCache(const KadId& id, const KadNet::Address& addr)
+	{
 		for (KadContactList::It it = mContactCache.First(); it != mContactCache.End(); ++it) {
 			if (id == mContactCache[it]->mId) {	// TODO: Also check IP?
 				// Hit -> move to back and return it
@@ -540,6 +662,7 @@ private:
 					mContactCache.Remove(it);
 					mContactCache.Append(result);
 				}
+				mStats.ContCacheHit++;
 				return result;
 			}
 		}
@@ -552,11 +675,29 @@ private:
 			while (mContactCache.Count() > 64) {
 				mContactCache.PopFront();
 			}
+			mStats.ContCacheMiss++;
 			return result;
 		}
 	}
 
 public:
+
+	struct Stats {
+		uint64_t UdpReqTx, UdpRspTx;
+		uint64_t UdpReqRx, UdpRspRx;
+
+		uint64_t UdtTx, UdtRx;
+		uint64_t TcpTx, TcpRx, TcpAcc;
+
+		unsigned ContInRt;
+		unsigned ContCacheHit, ContCacheMiss;
+		unsigned ReqSucc, ReqFail, RspUnkn, MsgDropped;
+		Stats() { memset(this, 0, sizeof(Stats)); }
+	};
+
+	const Stats& GetStats() const {
+		return mStats;
+	}
 
 	void DumpTableDot(ostream& s) const {
 		s << "digraph G {" << std::endl;
@@ -568,6 +709,7 @@ private:
 	XList<ReqTracker*> mOps;
 
 	XTimerContext	mTimeoutTimers;
+	XTimerContext	mPeriodicTimers;
 	KadRtNode		mRoutingTable;
 
 	KadContactList	mContactCache;
@@ -576,6 +718,8 @@ private:
 	XLog 			mLog;
 
 	KadNet::Listener mListener;
+	mutable Stats mStats;
+	XNotifyable		mPing;
 };
 
 #endif /* KADTRANSACTIONMGR_H_ */

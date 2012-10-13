@@ -42,6 +42,35 @@ int Ping(int argc, char* argv[])
 	return 0;
 }
 
+static
+int Stats(int argc, char* argv[])
+{
+	if (!gMgr) {
+		return 1;
+	}
+	const KadOpMgr::Stats& s = gMgr->GetStats();
+	const KadRtNode::Stats& rts = gMgr->GetRtStats();
+
+	printf("Routing table.\n");
+	printf("\tcontacts:%d, stale:%d, cached:%d, spaces:%d, buckets:%d\n",
+			rts.contacts, rts.stale, rts.cached, rts.spaces, rts.buckets);
+
+	printf("Traffic.\n");
+	printf("\tUdp Rx: %3.2fKb (req=%3.2f rsp=%3.2f)\n",
+			float(s.UdpReqRx+s.UdpRspRx)/1024, float(s.UdpReqRx)/1024, float(s.UdpRspRx)/1024);
+	printf("\tUdp Tx: %3.2fKb (req=%3.2f rsp=%3.2f)\n",
+			float(s.UdpReqTx+s.UdpRspTx)/1024, float(s.UdpReqTx)/1024, float(s.UdpRspTx)/1024);
+
+	printf("Contact recognition.\n");
+	printf("\trt:%d, hit:%d, miss:%d\n",
+			s.ContInRt, s.ContCacheHit, s.ContCacheMiss);
+	printf("Messages.\n");
+	printf("\tsucc:%d, fail:%d, unkn:%d, dropped:%d\n",
+			s.ReqSucc, s.ReqFail, s.RspUnkn, s.MsgDropped);
+
+	return 0;
+}
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -182,6 +211,7 @@ int main(int argc, char *argv[])
 	sh.RegisterCommand("find", &FindNode);
 	sh.RegisterCommand("update", &Update);
 	sh.RegisterCommand("ping", &Ping);
+	sh.RegisterCommand("stats", &Stats);
 	sh.Run();
 
 	/************************************************

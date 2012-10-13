@@ -14,6 +14,10 @@
 
 class TKadRtNode
 {
+public:
+	struct Stats {
+		unsigned contacts, stale, cached, buckets, spaces;
+	};
 
 private:
 	TKadRtNode(const KadId& local, unsigned depth, unsigned index)
@@ -178,6 +182,23 @@ private:
 		}
 	}
 
+	void GetStatsRec(Stats* stats) const {
+		if (IsBucket()) {
+			stats->buckets++;
+			stats->contacts += mContacts.Count();
+			stats->cached += mCache.Count();
+			for (KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
+				if (mContacts[it]->IsStale()) {
+					stats->stale++;
+				}
+			}
+		} else {
+			stats->spaces++;
+			m0->GetStatsRec(stats);
+			m1->GetStatsRec(stats);
+		}
+	}
+
 public:
 
 	TKadRtNode(const KadId& local)
@@ -191,9 +212,13 @@ public:
 	}
 
 	unsigned CountContacts() const { return IsBucket()?mContacts.Count():(m0->CountContacts() + m1->CountContacts()); }
-	unsigned CountCache() const { return IsBucket()?mCache.Count():(m0->CountCache() + m1->CountCache()); }
-	unsigned CountBuckets() const { return IsBucket()?1:(m0->CountBuckets() + m1->CountBuckets()); }
-	unsigned CountSpaces() const { return IsBucket()?0:(m0->CountSpaces() + m1->CountSpaces() + 1); }
+
+	Stats GetStats() const {
+		Stats result;
+		memset(&result, 0, sizeof(Stats));
+		GetStatsRec(&result);
+		return result;
+	}
 
 	const KadId& LocalId() const { return mLocalId; }
 

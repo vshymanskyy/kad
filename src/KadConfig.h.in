@@ -8,7 +8,7 @@
 /**
  * Kademlia ID size
  **/
-#define KADEMLIA_ID_BITS 160
+#define KADEMLIA_ID_BITS (160)
 #define KADEMLIA_ID_SIZE (KADEMLIA_ID_BITS/8)
 
 /**
@@ -21,54 +21,54 @@
  * A sensible implementation would have EXPIRE significantly longer than REPUBLISH.
  * Experience suggests that EXPIRE=86410 would be sufficient.
  **/
-#define KADEMLIA_EXPIRE 86500
+#define KADEMLIA_EXPIRE ((24*60*60+10)*1000)
 
 /**
  * The time after which an otherwise non-accessed bucket must be refreshed
  **/
-#define KADEMLIA_REFRESH 3600
+#define KADEMLIA_REFRESH (15*60*1000)
 
 /**
  * The interval between Kademlia replication events, when a node is required to publish its entire database
  **/
-#define KADEMLIA_REPLICATE 3600
+#define KADEMLIA_REPLICATE (60*60*1000)
 
 /**
  * The time after which the original publisher
  * must republish a key/value pair
  **/
-#define KADEMLIA_REPUBLISH 86400
+#define KADEMLIA_REPUBLISH (24*60*60*1000)
 
 /**
  * If no reply received from a node in this period (ms)
  * consider the node unresponsive.
  **/
-#define KADEMLIA_TIMEOUT_RESPONSE 1500
+#define KADEMLIA_TIMEOUT_RESPONSE (500)
 
 /**
  * Timeout for performing an operation (ms)
  **/
-#define KADEMLIA_TIMEOUT_OPERATION 5000
+#define KADEMLIA_TIMEOUT_OPERATION (3000)
 
 /**
  * Maximum number of concurrent messages in transit.
  **/
-#define KADEMLIA_ALPHA 3
+#define KADEMLIA_ALPHA (3)
 
 /**
  * Log base exponent
  **/
-#define KADEMLIA_B 2
+#define KADEMLIA_B (2)
 
 /**
  * Routing table levels allowed to split
  **/
-#define KADEMLIA_RT_BASE 3
+#define KADEMLIA_RT_BASE (3)
 
 /**
  * K-Bucket size (K)
  **/
-#define KADEMLIA_BUCKET_SIZE 16
+#define KADEMLIA_BUCKET_SIZE (16)
 
 /**
  * Size of replacement cache.
@@ -78,13 +78,12 @@
 /**
  * Number of times a node can be marked as stale before it is actually removed.
  **/
-#define KADEMLIA_STALE 3
+#define KADEMLIA_STALE (3)
 
 /**
  * This is the biggest message that won't split in a real network.
  **/
-#define KADEMLIA_MAX_MSG_SIZE 1400
-//#define KADEMLIA_MAX_MSG_SIZE 576 // RFC 791 (1981).
+#define KADEMLIA_MAX_MSG_SIZE (1400) // 576 /* RFC 791 (1981). */
 
 //#define KADEMLIA_DBG_BIN_ID
 

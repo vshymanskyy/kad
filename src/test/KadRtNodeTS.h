@@ -12,10 +12,11 @@ public:
 
 	void testInit(void) {
 		TestRt rt(KadId("0"));
-		TS_ASSERT_EQUALS(rt.CountCache(), 0);
-		TS_ASSERT_EQUALS(rt.CountContacts(), 0);
-		TS_ASSERT_EQUALS(rt.CountSpaces(), 0);
-		TS_ASSERT_EQUALS(rt.CountBuckets(), 1);
+		TestRt::Stats s = rt.GetStats();
+		TS_ASSERT_EQUALS(s.cached, 0);
+		TS_ASSERT_EQUALS(s.contacts, 0);
+		TS_ASSERT_EQUALS(s.spaces, 0);
+		TS_ASSERT_EQUALS(s.buckets, 1);
 	}
 
 	void testRouting(void)
@@ -25,7 +26,8 @@ public:
 		for (int i=0; i<10000; i++) {
 			KadId cid = KadId::Random();
 			rt.AddNode(cid, XSockAddr::Random());
-			TS_ASSERT_EQUALS(rt.CountSpaces(), rt.CountBuckets()-1);
+			TestRt::Stats s = rt.GetStats();
+			TS_ASSERT_EQUALS(s.spaces, s.buckets-1);
 		}
 
 		//TS_ASSERT_EQUALS(rt.CountCache(), 0);
