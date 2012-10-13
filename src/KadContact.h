@@ -49,7 +49,9 @@ struct KadContact
 		return free(ptr);
 	}
 */
+
 	bool IsStale() const { return mFailQty >= KADEMLIA_STALE; }
+	bool BecameStale() const { return mFailQty == KADEMLIA_STALE; }
 };
 
 typedef std::tr1::shared_ptr<KadContact>	KadContactPtr;

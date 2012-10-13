@@ -16,7 +16,6 @@
 
 #include "KadMsg.h"
 #include "KadOverIP.h"
-#include "KadIterativeFind.h"
 
 #include <iostream>
 #include <map>
@@ -84,7 +83,7 @@ private:
 
 		void Start() {
 			int sentQty = Send(KADEMLIA_ALPHA);
-			LOG(mMgr->mLog, FMT("Started node lookup: %d sent", sentQty));
+			LOG_DEEP(mMgr->mLog, FMT("Started node lookup: %d sent", sentQty));
 		}
 
 		void OnResponce(const msgpack::object* rsp, KadContactPtr& contact) {
@@ -98,7 +97,9 @@ private:
 
 			if (!rsp) {
 				if (contact->IsStale()) {
-					LOG(mMgr->mLog, "Stale: " << contact->mAddrExt.ToString());
+					if (contact->BecameStale()) {
+						LOG(mMgr->mLog, "Stale: " << contact->mAddrExt.ToString());
+					}
 
 					KadContactList::It n = mList.FindAfter(mList.First(), contact);
 					if (n != mList.End()) {

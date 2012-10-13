@@ -255,15 +255,15 @@ public:
 	}
 
 	void PrintDot(std::ostream& s) const {
-		TKadId<KadId::SIZE+1> rangeSize = TKadId<KadId::SIZE+1>::PowerOfTwo(KadId::BIT_SIZE-mDepth);
+		//TKadId<KadId::SIZE> rangeSize = TKadId<KadId::SIZE>::PowerOfTwo(KadId::BIT_SIZE-mDepth);
 
 		if (IsBucket()) {
 			s << '"' << this << '"';
 			s << " [shape=record, style=filled, fillcolor=skyblue, label=\"{";
 			s << "{index:" << mIndex << "|depth:" << mDepth  << "}";
 
-			s  << "|{size:" << rangeSize.ToString() << "}";
-			s  << "|{[" << (rangeSize*mIndex).ToString() << "; " << (rangeSize*(mIndex+1)).ToString() << ")}";
+			//s  << "|{size:" << rangeSize.ToString() << "}";
+			//s  << "|{[" << (rangeSize*mIndex).ToString() << "; " << (rangeSize*(mIndex+1)).ToString() << ")}";
 
 			s << "|{Contacts (" << mContacts.Count() << ")}";
 			for (KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
@@ -281,8 +281,8 @@ public:
 			s << "{index:" << mIndex << "|depth:" << mDepth  << "}";
 
 			s  << "|{local:" << mLocalId.ToString() << "}";
-			s  << "|{size:" << rangeSize.ToString() << "}";
-			s  << "|{[" << (rangeSize*mIndex).ToString() << "; " << (rangeSize*(mIndex+1)).ToString() << ")}";
+			//s  << "|{size:" << rangeSize.ToString() << "}";
+			//s  << "|{[" << (rangeSize*mIndex).ToString() << "; " << (rangeSize*(mIndex+1)).ToString() << ")}";
 
 			s << "}\"]" << std::endl;
 
