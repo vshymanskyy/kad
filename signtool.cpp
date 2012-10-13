@@ -1,5 +1,3 @@
-#include <KadConfig.h>
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -21,21 +19,19 @@
 using namespace CryptoPP;
 using namespace std;
 
-static size_t FileSize(const char* filePath)
-{
-	std::ifstream file(filePath, std::ios::binary);
-
-	size_t fsize = 0;
-	if (file.is_open()) {
-		file.seekg(0, std::ios::end);
-		fsize = file.tellg();
-		file.close();
-	}
-
-	return fsize;
-}
-
 AutoSeededRandomPool rng;
+
+inline
+uint64_t FileSize(const char* fn)
+{
+	if (FILE* f = fopen(fn, "rb")) {
+		fseek(f, 0, SEEK_END);
+		uint64_t result = ftello64(f);
+		fclose(f);
+		return result;
+	}
+	return 0;
+}
 
 static void Fatal(const char* fmt, ...)
 {
@@ -139,7 +135,8 @@ bool VerifyFile(const char* fnIn, const char* fnOut)
 			Fatal("Hash verification FAIL!");
 		}
 
-		Info("Verification OK (version: %s, timestamp: %s)", descr["ver"].as<string>().c_str(), descr["timestamp"].as<string>().c_str());
+		msgpack_object_print(stdout, descrPack.get());
+		Info("\nVerification OK");
 
 		if (fnOut) {
 			ofstream outfile(fnOut, std::ios::binary);
@@ -166,7 +163,7 @@ bool SignFile(const char* fnIn, const char* fnOut)
 	{
 		// Version string
 		std::ostringstream version;
-		version << KADEMLIA_VERSION_MAJOR << "." << KADEMLIA_VERSION_MINOR << "." << KADEMLIA_VERSION_PATCH;
+		version << "0.1.0";
 
 		time_t result = time(NULL);
 	    char gmTime[64];

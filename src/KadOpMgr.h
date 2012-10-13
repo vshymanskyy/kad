@@ -16,6 +16,7 @@
 
 #include "KadMsg.h"
 #include "KadOverIP.h"
+#include "KadIterativeFind.h"
 
 #include <iostream>
 #include <map>
@@ -23,6 +24,7 @@ using namespace std;
 
 class KadOpMgr {
 	friend class KadOpMgrTS;
+	friend class KadIterativeFindOp;
 
 private:
 	class ReqTracker {
@@ -62,15 +64,17 @@ private:
 		//time	mStarted;
 	};
 
-
 	class KadIterativeFindOp
 	{
 
 	public:
-		KadIterativeFindOp(KadOpMgr* mgr, const KadId& key)
+		typedef XDelegate< void (KadContactList& contacts) > Handler;
+
+		KadIterativeFindOp(KadOpMgr* mgr, const KadId& key, Handler handler)
 			: mKey(key)
 			, mMgr(mgr)
 			, mPendingQty(0)
+			, mHandler(handler)
 		{
 			KadContactList lst = mMgr->FindClosest(mKey, KADEMLIA_BUCKET_SIZE);
 			for (KadContactList::It it=lst.First(); it!=lst.End(); ++it) {
@@ -80,7 +84,7 @@ private:
 
 		void Start() {
 			int sentQty = Send(KADEMLIA_ALPHA);
-			LOG(mMgr->mLog, FMT("%d sent", sentQty));
+			LOG(mMgr->mLog, FMT("Started node lookup: %d sent", sentQty));
 		}
 
 		void OnResponce(const msgpack::object* rsp, KadContactPtr& contact) {
@@ -107,9 +111,9 @@ private:
 
 				int sentQty = Send(1);
 				if (sentQty) {
-					LOG(mMgr->mLog, FMT("Timeout: %d pend, %d sent", mPendingQty-sentQty, sentQty));
+					LOG_DEEP(mMgr->mLog, FMT("Timeout: %d pend, %d sent", mPendingQty-sentQty, sentQty));
 				} else if (!mPendingQty) {
-					LOG(mMgr->mLog, "Timeout: 0 pend, 0 sent -> Complete");
+					LOG_DEEP(mMgr->mLog, "Timeout: 0 pend, 0 sent -> Complete");
 					Complete();
 				}
 
@@ -137,13 +141,13 @@ private:
 				if (insertQty) {
 					X_ASSERT_LE(mPendingQty, KADEMLIA_ALPHA, "%d");
 					int sentQty = Send(KADEMLIA_ALPHA-mPendingQty);
-					LOG(mMgr->mLog, FMT("%d pend, %d insert -> %d sent", mPendingQty-sentQty, insertQty, sentQty));
+					LOG_DEEP(mMgr->mLog, FMT("%d pend, %d insert -> %d sent", mPendingQty-sentQty, insertQty, sentQty));
 
 				} else if (!mPendingQty && !insertQty) {
-					LOG(mMgr->mLog, "0 pend, 0 sent -> Complete");
+					LOG_DEEP(mMgr->mLog, "0 pend, 0 sent -> Complete");
 					Complete();
 				} else {
-					LOG(mMgr->mLog, FMT("%d pend, %d insert", mPendingQty, insertQty));
+					LOG_DEEP(mMgr->mLog, FMT("%d pend, %d insert", mPendingQty, insertQty));
 				}
 			}
 		}
@@ -204,7 +208,7 @@ private:
 						mBlock.Append(c);
 
 						KadMsgFindReq findReq(mKey);
-						mMgr->SendRequest(findReq, new ReqTracker(c, ReqTracker::Handler(this, &KadIterativeFindOp::OnResponce)));
+						mMgr->SendRequest(findReq, new KadOpMgr::ReqTracker(c, KadOpMgr::ReqTracker::Handler(this, &KadIterativeFindOp::OnResponce)));
 
 						mPendingQty++;
 
@@ -219,22 +223,27 @@ private:
 		}
 
 		void Complete () {
-			LOG(mMgr->mLog, "Key: " << mKey.ToString());
-			LOG(mMgr->mLog, "Contacted: " << mBlock.Count());
-			LOG(mMgr->mLog, "List: " << mList.Count());
+			if (mHandler) {
+				mHandler(mList);
+			} else {
+				LOG(mMgr->mLog, "Key: " << mKey.ToString());
+				LOG(mMgr->mLog, "Contacted: " << mBlock.Count());
+				LOG(mMgr->mLog, "List: " << mList.Count());
 
-			for (XList<KadContactPtr>::It it=mList.First(); it!=mList.End(); ++it) {
-				LOG(NULL, "    " << mList[it]->mId);
+				for (XList<KadContactPtr>::It it=mList.First(); it!=mList.End(); ++it) {
+					LOG(NULL, "    " << mList[it]->mId);
+				}
 			}
-
 		}
 	private:
-		KadId mKey;
-		KadContactList mList;
-		KadContactList mBlock;
-		KadOpMgr* mMgr;
-		int mPendingQty;
+		KadId			mKey;
+		KadContactList	mList;
+		KadContactList	mBlock;
+		KadOpMgr*		mMgr;
+		int				mPendingQty;
+		Handler			mHandler;
 	};
+
 
 private:
 	void RecieveCbk(const void* buff, size_t len, const KadNet::Address& from) {
@@ -276,6 +285,7 @@ private:
 
 		switch (req.mMsgType) {
 		case KadMsg::KAD_MSG_PING: {
+			//LOG_WARN(mLog, "Ping from " << from.ToString());
 			KadMsgPong pong;
 			SendResponse(pong, from, req);
 		} break;
@@ -337,8 +347,6 @@ private:
 
 	template <typename T>
 	void SendResponse(T& s, const KadNet::Address& addr, const KadMsg& req) const {
-		//LOG_DEEP(mLog, ">> " << s);
-
 		s.mSrcId = LocalId();
 		s.mMsgId = req.mMsgId;
 
@@ -384,6 +392,17 @@ private:
 		mLock.Unlock();
 	}
 
+	enum State {
+		KAD_INIT,
+		KAD_JOINING,
+		KAD_JOINED,
+		KAD_LEFT
+	} mState;
+
+	void SetState(State s) {
+		mState = s;
+	}
+
 public:
 
 	KadOpMgr(const KadId& id, const XSockAddr& addr)
@@ -418,10 +437,10 @@ public:
 		return KadContactPtr();
 	}
 
-	void Find(const KadId& key) {
+	void Find(const KadId& key, KadIterativeFindOp::Handler h) {
 		mLock.Lock();
 
-		KadIterativeFindOp* op = new KadIterativeFindOp(this, key);
+		KadIterativeFindOp* op = new KadIterativeFindOp(this, key, h);
 		op->Start();
 
 		mLock.Unlock();
@@ -430,22 +449,42 @@ public:
 	void Init(const KadContactList& bsp) {
 		// Fill local routing table
 		for (KadContactList::It it = bsp.First(); it != bsp.End(); ++it) {
-			//FindAddContact(bsp[it]);
+			//TODO: FindAddContact(bsp[it]);
 		}
-
 	}
 
 	void Join(const XList<XSockAddr>& bsp) {
+
+		if (!bsp.Count()) return;
+
+		mLock.Lock();
+		unsigned contacts = mRoutingTable.CountContacts();
+		mLock.Unlock();
+
+		while (!contacts) {
+			for (XList<XSockAddr>::It it = bsp.First(); it != bsp.End(); ++it) {
+				LOG_WARN(mLog, "Ping to" << bsp[it].ToString());
+				KadMsgPing ping;
+				SendRequest(ping, bsp[it]);
+			}
+			XThread::SleepMs(KADEMLIA_TIMEOUT_RESPONSE/10);
+
+			mLock.Lock();
+			contacts = mRoutingTable.CountContacts();
+			mLock.Unlock();
+		}
+
+
+		// Perform a node lookup for your own LocalId
+		Find(LocalId(), KadIterativeFindOp::Handler(this, &KadOpMgr::JoinFindComplete));
+	}
+
+	void Ping(const XList<XSockAddr>& bsp) {
 		for (XList<XSockAddr>::It it = bsp.First(); it != bsp.End(); ++it) {
-			LOG_WARN(mLog, "Ping to" << bsp[it].ToString());
+			//LOG_WARN(mLog, "Ping to" << bsp[it].ToString());
 			KadMsgPing ping;
 			SendRequest(ping, bsp[it]);
 		}
-		XThread::SleepMs(KADEMLIA_TIMEOUT_RESPONSE);
-		// Perform a node lookup for your own LocalId
-		Find(LocalId());
-
-		//XThread::SleepMs(KADEMLIA_TIMEOUT_OPERATION);
 	}
 
 	const XList<XSockAddr> Leave() {
@@ -462,6 +501,28 @@ public:
 	}
 
 private:
+
+	void JoinFindComplete(KadContactList& nodes) {
+		LOG(mLog, "Join: Find self complete (" << mRoutingTable.CountContacts() << " nodes in RT)");
+		// TODO: Update buckets
+
+		mTimeoutTimers.SetTimer(XTimerContext::Handler(this, &KadOpMgr::UpdateBuckets), 0, 60*1000);
+	}
+
+	void UpdateBuckets(void*) {
+		LOG(mLog, "Refresh started");
+		for (int i=1; i<KADEMLIA_ID_BITS; i++) {
+			KadId prefix = KadId::PowerOfTwo(i);
+			KadId rndId = KadId::Random().SetBits(0, i, 0);
+			Find((rndId | prefix) ^ LocalId(), KadIterativeFindOp::Handler(this, &KadOpMgr::JoinUpdateComplete));
+			XThread::SleepMs(50);
+		}
+		LOG(mLog, "Refresh finished");
+	}
+
+	void JoinUpdateComplete(KadContactList& nodes) {
+		//LOG(mLog, "Join: Update buckets complete => Joined");
+	}
 
 	void SendPing(const KadNet::Address& addr) {
 		KadMsgPing ping;
@@ -505,10 +566,10 @@ public:
 private:
 	XList<ReqTracker*> mOps;
 
-	//XTimerContext	mTimeoutTimers;
+	XTimerContext	mTimeoutTimers;
 	KadRtNode		mRoutingTable;
 
-	KadContactList mContactCache;
+	KadContactList	mContactCache;
 
 	XMutexRecursive	mLock;
 	XLog 			mLog;

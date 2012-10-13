@@ -2,6 +2,7 @@
 #include "XLogUtils.h"
 #include "XCmdShell.h"
 #include "XTimeCounter.h"
+#include "XFileSystem.h"
 
 #include "KadOpMgr.h"
 #include "KadContact.h"
@@ -12,6 +13,10 @@ KadOpMgr* gMgr;
 static
 int Peers(int argc, char* argv[])
 {
+	if (!gMgr) {
+		return 1;
+	}
+	printf("Contacts: %d\n", gMgr->GetContacts().Count());
 	return 0;
 }
 
@@ -24,6 +29,16 @@ int FindNode(int argc, char* argv[])
 static
 int Update(int argc, char* argv[])
 {
+	return 0;
+}
+
+static
+int Ping(int argc, char* argv[])
+{
+	if (!gMgr || argc != 2) {
+		return 1;
+	}
+	gMgr->Ping(XSockAddr::Lookup(argv[1]));
 	return 0;
 }
 
@@ -56,40 +71,15 @@ void SaveBspToFile(const char* fn, const XList<XSockAddr>& bsps)
 	outfile.open(fn);
 	if (outfile.is_open()) {
 		for (XList<XSockAddr>::It it = bsps.First(); it != bsps.End(); ++it) {
-			//XString name = bsps[it].ResolveName();
-			//if (name.Length()) {
-			//	outfile << name << ":" << bsps[it].Port() << endl;
-			//} else {
+			XString name = bsps[it].ResolveName();
+			if (name.Length()) {
+				outfile << name << ":" << bsps[it].Port() << endl;
+			} else {
 				outfile << bsps[it].ToString() << endl;
-			//}
+			}
 		}
 		outfile.close();
 	}
-}
-
-#include <sys/stat.h>
-#include <unistd.h>
-
-bool FileExists(const char* fn) {
-	struct stat sts;
-	if (stat(fn, &sts) == -1)
-	{
-		if (errno == ENOENT) {
-			return false;
-		}
-		X_FATAL("stat failed: %d (%s)", errno, strerror(errno));
-	}
-	return true;
-}
-
-bool FileDelete(const char* fn) {
-	if (unlink(fn) == -1)
-	{
-		if (errno != ENOENT) {
-			return false;
-		}
-	}
-	return true;
 }
 
 KadRSA* TryLoadKeys() {
@@ -111,34 +101,53 @@ KadRSA* TryLoadKeys() {
 
 int main(int argc, char *argv[])
 {
-	const char* bindaddr = "[::]:7777";
-	if (argc == 2) {
-		bindaddr = argv[1];
-	}
-
 	/************************************************
 	 * General initialization
 	 */
-	XStackTrace();
+	//XStackTrace();
 	RandInit();
 	//XLogManager::Get().SetDefaultLogger(new XFileLogger("log.txt"));
 
 	/************************************************
+	 * Handle command line
+	 */
+	char* bindaddr = "[::]:7777";
+	bool temporary = false;
+	if (argc == 2) {
+		bindaddr = argv[1];
+	}
+
+	if (argc == 3 && !strcmp(argv[2], "-temp")) {
+		temporary = true;
+	} else if (argc == 2 && !strcmp(argv[1], "-temp")) {
+		temporary = true;
+		bindaddr = new char[64];
+		sprintf(bindaddr, "[::]:%d", RandRange(1024, 32000));
+	}
+
+	/************************************************
 	 * Generate/Load Local identification data
 	 */
-	KadRSA* rsa = NULL; //TryLoadKeys();
-	if (!rsa) {
-		printf("Generating new RSA keys\n");
-		rsa = new KadRSA();
+	KadRSA* rsa = NULL;
+	if (!temporary) {
+		rsa = TryLoadKeys();
+		if (!rsa) {
+			printf("Generating new RSA keys\n");
+			rsa = new KadRSA();
+			if (!rsa->ValidateKeys()) {
+				X_FATAL("Invalid RSA keys generated!");
+			}
 
+			rsa->SaveKeys("key.priv", "key.pub");
+			printf("RSA keys saved\n");
+		}
+	} else {
+		printf("Generating temporary RSA keys\n");
+		rsa = new KadRSA();
 		if (!rsa->ValidateKeys()) {
 			X_FATAL("Invalid RSA keys generated!");
 		}
-
-		rsa->SaveKeys("key.priv", "key.pub");
-		printf("RSA keys saved\n");
 	}
-
 	std::string pubKeyStr = KadRSA::PubEncode(rsa->GetPublicKey());
 	KadId localId = KadId::FromHash(pubKeyStr.c_str(), pubKeyStr.size());
 
@@ -151,7 +160,7 @@ int main(int argc, char *argv[])
 	 */
 	XList<XSockAddr> bspLst = LoadBspFromFile("bsp.cfg");
 
-	// No bsp's in file case
+	// No bsp's in the file
 	if (!bspLst.Count()) {
 		printf ("Please enter bootstrap node address: ");
 		char buff[256];
@@ -172,6 +181,7 @@ int main(int argc, char *argv[])
 	sh.RegisterCommand("peers", &Peers);
 	sh.RegisterCommand("find", &FindNode);
 	sh.RegisterCommand("update", &Update);
+	sh.RegisterCommand("ping", &Ping);
 	sh.Run();
 
 	/************************************************
@@ -183,7 +193,9 @@ int main(int argc, char *argv[])
 	/************************************************
 	 * Save bootstrap contacts (bsp.txt)
 	 */
-	SaveBspToFile("bsp.cfg", bspLst);
+	if (bspLst.Count()) {	// Not to produce empty file!
+		SaveBspToFile("bsp.cfg", bspLst);
+	}
 
 	return 0;
 }

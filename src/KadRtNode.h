@@ -161,13 +161,15 @@ private:
 			KadContactList result;
 			// Find closest nodes in bucket
 			for (KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
-				if (result.Count() < qty) {
-					result.Append(mContacts[it]);
-				} else {
-					for (XList<KadContactPtr>::It jt = result.First(); jt != result.End(); ++jt) {
-						if (id.Closer(mContacts[it]->mId, result[jt]->mId)) {
-							result[jt] = mContacts[it];
-							break;
+				if (!mContacts[it]->IsStale()) {
+					if (result.Count() < qty) {
+						result.Append(mContacts[it]);
+					} else {
+						for (XList<KadContactPtr>::It jt = result.First(); jt != result.End(); ++jt) {
+							if (id.Closer(mContacts[it]->mId, result[jt]->mId)) {
+								result[jt] = mContacts[it];
+								break;
+							}
 						}
 					}
 				}
@@ -201,7 +203,7 @@ public:
 		return (rndId | prefix) ^ mLocalId;
 	}
 
-	XList<KadId> GetRefreshList() {
+	/*XList<KadId> GetRefreshList() {
 		XList<KadId> refreshList;
 		for (int i=1; i<KADEMLIA_ID_SIZE; i++) {
 			KadId prefix = KadId::PowerOfTwo(i);
@@ -209,7 +211,7 @@ public:
 			refreshList.Append((rndId | prefix) ^ mLocalId);
 		}
 		return refreshList;
-	}
+	}*/
 
 	KadContactPtr AddNode(const KadId& id, const KadNet::Address& addr) {
 		return AddNode(id, addr, id ^ mLocalId);
@@ -231,7 +233,9 @@ public:
 		KadContactList result;
 		if (IsBucket()) {
 			for (KadContactList::It it = mContacts.First(); it != mContacts.End(); ++it) {
-				result.Append(mContacts[it]);
+				if (!mContacts[it]->IsStale()) {
+					result.Append(mContacts[it]);
+				}
 			}
 		} else {
 			result.Append(m0->GetContacts());
