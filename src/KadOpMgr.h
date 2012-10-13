@@ -21,7 +21,7 @@
 #include <map>
 using namespace std;
 
-class XNotifyable
+/*class XNotifyable
 	: public XMutexRecursive
 {
 
@@ -98,7 +98,7 @@ private:
 
 	pthread_cond_t	mCond;
 	bool			mFlag;
-};
+};*/
 
 class KadOpMgr {
 	friend class KadOpMgrTS;
@@ -387,9 +387,9 @@ private:
 			mStats.UdpReqRx += len;
 		} break;
 		case KadMsg::KAD_MSG_PONG:
-			LOG_WARN(mLog, "PONG_NTF");
-			mPing.Notify();
-			LOG_WARN(mLog, "PONG_NTF_DONE");
+			//LOG_WARN(mLog, "PONG_NTF");
+			//mPing.Notify();
+			//LOG_WARN(mLog, "PONG_NTF_DONE");
 		case KadMsg::KAD_MSG_JOIN_RSP:
 		case KadMsg::KAD_MSG_FIND_RSP:
 		case KadMsg::KAD_MSG_STORE_RSP:
@@ -562,7 +562,7 @@ public:
 
 		unsigned delay = KADEMLIA_TIMEOUT_RESPONSE;
 		unsigned delayMax = 30*1000;
-		float backoff = 10.5;
+		float backoff = 1.5;
 
 		while (!contacts) {
 			for (XList<XSockAddr>::It it = bsp.First(); it != bsp.End(); ++it) {
@@ -571,11 +571,12 @@ public:
 				SendRequest(ping, bsp[it]);
 				XThread::SleepMs(50);
 			}
-			if (mPing.Wait(delay)) {
-				LOG_WARN(mLog, "NOTIFIED");
-			} else {
-				LOG_WARN(mLog, "Timeout");
-			}
+			XThread::SleepMs(delay);
+			//if (mPing.Wait(delay)) {
+			//	LOG_WARN(mLog, "NOTIFIED");
+			//} else {
+			//	LOG_WARN(mLog, "Timeout");
+			//}
 
 			mLock.Lock();
 			contacts = mRoutingTable.CountContacts();
@@ -719,7 +720,7 @@ private:
 
 	KadNet::Listener mListener;
 	mutable Stats mStats;
-	XNotifyable		mPing;
+	//XNotifyable		mPing;
 };
 
 #endif /* KADTRANSACTIONMGR_H_ */
