@@ -349,7 +349,8 @@ private:
         	return;
         }
 
-		//XThread::SleepMs(RandRange(0,8));
+        if (RandRange(0,100) < 30) return;
+		//XThread::SleepMs(RandRange(0,600));
 
         KadMsg req = msg.get().via.array.ptr[0].convert();
 
@@ -361,6 +362,11 @@ private:
 
 		mLock.Lock();
 		KadContactPtr contact = FindAddContact(req.mSrcId, from);
+		if (contact->IsStale()) {
+			LOG(mLog, "Return: " << contact->mAddrExt.ToString());
+			contact->mFailQty = 0;
+		}
+
 		mLock.Unlock();
 
 		switch (req.mMsgType) {
@@ -709,7 +715,7 @@ public:
 private:
 	XList<ReqTracker*> mOps;
 
-	XTimerContext	mTimeoutTimers;
+	//XTimerContext	mTimeoutTimers;
 	XTimerContext	mPeriodicTimers;
 	KadRtNode		mRoutingTable;
 
